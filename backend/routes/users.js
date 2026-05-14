@@ -1,0 +1,16 @@
+import express from 'express';
+import * as userController from '../controllers/userController.js';
+import authMiddleware from '../middlewares/auth.js';
+
+const router = express.Router();
+
+// All routes are protected
+router.use(authMiddleware);
+
+router.get('/profile', userController.getProfile);
+router.put('/profile', userController.updateProfile);
+router.put('/preferences', userController.updatePreferences);
+router.put('/change-password', userController.changePassword);
+router.delete('/account', userController.deleteAccount);
+
+export default router;
