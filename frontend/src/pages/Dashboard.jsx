@@ -71,7 +71,7 @@ const Dashboard = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50">
+            <div className="kitchen-page">
                 <Navbar />
 
                 <div className="flex items-center justify-center h-96">
@@ -82,19 +82,34 @@ const Dashboard = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="kitchen-page">
             <Navbar />
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900">
-                        Dashboard
-                    </h1>
+                <div className="mb-8 overflow-hidden rounded-3xl border border-gray-200 bg-white p-6 shadow-lg sm:p-8">
+                    <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                        <div>
+                            <p className="mb-3 text-sm font-bold uppercase tracking-[0.18em] text-emerald-600">
+                                Kitchen overview
+                            </p>
+                            <h1 className="text-4xl font-black tracking-tight text-gray-900 sm:text-5xl">
+                                What are we cooking today?
+                            </h1>
 
-                    <p className="text-gray-600 mt-1">
-                        Welcome back! Here's your cooking overview
-                    </p>
+                            <p className="mt-3 max-w-2xl text-base leading-7 text-gray-600">
+                                Welcome back to ChefAI. Your recipes, pantry, and weekly meals are gathered in one calm workspace.
+                            </p>
+                        </div>
+
+                        <Link
+                            to="/generate"
+                            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-bold text-white shadow-lg transition-colors hover:bg-emerald-600"
+                        >
+                            <ChefHat className="h-5 w-5" />
+                            Generate Recipe
+                        </Link>
+                    </div>
                 </div>
 
                 {/* Stats Cards */}
@@ -125,7 +140,7 @@ const Dashboard = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                     <Link
                         to="/generate"
-                        className="bg-gradient-to-r from-emerald-50 to-emerald-100 text-emerald-500 p-6 rounded-xl shadow-sm hover:shadow-md transition-all group"
+                        className="bg-gradient-to-r from-emerald-50 to-amber-50 text-emerald-500 p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all group"
                     >
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -134,11 +149,11 @@ const Dashboard = () => {
 
                             <div>
                                 <h3 className="font-semibold text-lg">
-                                    Generate Recipe
+                                    Open ChefAI Studio
                                 </h3>
 
                                 <p className="text-emerald-800 text-sm">
-                                    Create AI-powered recipes
+                                    Create AI-powered recipes with ChefAI
                                 </p>
                             </div>
                         </div>
@@ -146,7 +161,7 @@ const Dashboard = () => {
 
                     <Link
                         to="/pantry"
-                        className="bg-white border border-gray-200 p-6 rounded-xl shadow-sm hover:shadow-md transition-all group"
+                        className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm hover:shadow-md transition-all group"
                     >
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 bg-emerald-50 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -169,7 +184,7 @@ const Dashboard = () => {
                 {/* Recent Recipes & Upcoming Meals */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Recent Recipes */}
-                    <div className="bg-white rounded-xl border border-gray-200 p-6">
+                    <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-lg font-semibold text-gray-900">
                                 Recent Recipes
@@ -216,7 +231,7 @@ const Dashboard = () => {
                     </div>
 
                     {/* Upcoming Meals */}
-                    <div className="bg-white rounded-xl border border-gray-200 p-6">
+                    <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-lg font-semibold text-gray-900">
                                 Upcoming Meals
@@ -273,7 +288,7 @@ const StatCard = ({ icon, label, value, color }) => {
     };
 
     return (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
             <div className="flex items-center gap-4">
                 <div
                     className={`w-12 h-12 rounded-lg flex items-center justify-center ${colorClasses[color]}`}

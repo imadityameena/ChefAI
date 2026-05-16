@@ -320,7 +320,101 @@ const AddMealModal = ({
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-xl max-w-md w-full p-6">
-                {/* Keep your existing modal JSX same */}
+                <div className="flex items-start justify-between mb-4">
+                    <div>
+                        <h2 className="text-xl font-semibold text-gray-900 capitalize">
+                            Add {mealType}
+                        </h2>
+                        <p className="text-sm text-gray-600 mt-1">
+                            {format(new Date(date), 'EEEE, MMMM d, yyyy')}
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                        aria-label="Close modal"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Search Recipe
+                        </label>
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={e =>
+                                setSearchQuery(e.target.value)
+                            }
+                            placeholder="Search recipes..."
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Select Recipe
+                        </label>
+
+                        <div className="max-h-56 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100">
+                            {filteredRecipes.length > 0 ? (
+                                filteredRecipes.map(recipe => (
+                                    <button
+                                        key={recipe.id}
+                                        type="button"
+                                        onClick={() =>
+                                            setSelectedRecipe(recipe.id)
+                                        }
+                                        className={`w-full text-left px-3 py-2 hover:bg-gray-50 transition-colors ${
+                                            String(selectedRecipe) ===
+                                            String(recipe.id)
+                                                ? 'bg-emerald-50 text-emerald-900'
+                                                : 'text-gray-800'
+                                        }`}
+                                    >
+                                        <p className="font-medium line-clamp-1">
+                                            {recipe.name}
+                                        </p>
+                                        <p className="text-xs text-gray-500 mt-0.5">
+                                            {recipe.cuisine_type ||
+                                                'General'}{' '}
+                                            •{' '}
+                                            {recipe.difficulty ||
+                                                'medium'}
+                                        </p>
+                                    </button>
+                                ))
+                            ) : (
+                                <div className="px-3 py-6 text-sm text-gray-500 text-center">
+                                    No recipes found
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-3 pt-2">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                        >
+                            Cancel
+                        </button>
+
+                        <button
+                            type="submit"
+                            disabled={loading || !selectedRecipe}
+                            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                            {loading ? 'Adding...' : 'Add Meal'}
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     );

@@ -1,22 +1,42 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 @import 'tailwindcss';
 
-/* Modern Minimal Design System with Tailwind */
+/* Fresh kitchen design system */
 
 @layer base {
   :root {
-    /* Primary Colors - Emerald */
-    --color-primary: 16 185 129;
-    --color-primary-dark: 5 150 105;
-    --color-primary-light: 52 211 153;
+    --kitchen-cream: #fff6e7;
+    --kitchen-surface: #fffaf1;
+    --kitchen-card: #ffffff;
+    --kitchen-ink: #211b17;
+    --kitchen-muted: #766d61;
+    --kitchen-line: #ead9bf;
+    --kitchen-tomato: #f05a3c;
+    --kitchen-tomato-dark: #b93624;
+    --kitchen-sage: #456f55;
+    --kitchen-sage-soft: #eaf4e8;
+    --kitchen-gold: #f3aa2f;
+    --kitchen-sky: #417f94;
+    --kitchen-charcoal: #27211d;
   }
 
   * {
     @apply border-gray-200;
   }
 
+  html {
+    background: var(--kitchen-cream);
+  }
+
   body {
-    @apply bg-gray-50 text-gray-900 font-sans antialiased;
+    @apply text-gray-900 font-sans antialiased;
+    min-width: 320px;
+    min-height: 100vh;
+    color: var(--kitchen-ink);
+    background:
+      radial-gradient(circle at top left, rgba(243, 170, 47, 0.26), transparent 28rem),
+      radial-gradient(circle at top right, rgba(69, 111, 85, 0.2), transparent 30rem),
+      linear-gradient(135deg, #fff6e7 0%, #fbefe0 44%, #eaf4e8 100%);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
 
@@ -26,7 +46,15 @@
   h4,
   h5,
   h6 {
-    @apply font-semibold text-gray-900;
+    @apply font-semibold;
+    color: var(--kitchen-ink);
+  }
+
+  button,
+  a,
+  input,
+  select {
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
@@ -54,4 +82,221 @@
   .text-balance {
     text-wrap: balance;
   }
+}
+
+@layer components {
+  .kitchen-page {
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 12% 4%, rgba(240, 90, 60, 0.14), transparent 22rem),
+      radial-gradient(circle at 88% 10%, rgba(69, 111, 85, 0.18), transparent 24rem),
+      linear-gradient(180deg, rgba(255, 246, 231, 0.96) 0%, rgba(251, 239, 224, 0.98) 45%, rgba(234, 244, 232, 0.9) 100%);
+  }
+
+  .kitchen-shell {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8;
+  }
+
+  .kitchen-card {
+    border: 1px solid rgba(234, 223, 206, 0.95);
+    background: rgba(255, 253, 248, 0.92);
+    box-shadow: 0 18px 44px rgba(68, 52, 35, 0.08);
+  }
+
+  .kitchen-button {
+    background: linear-gradient(135deg, var(--kitchen-tomato), var(--kitchen-tomato-dark));
+    box-shadow: 0 14px 28px rgba(232, 93, 63, 0.22);
+  }
+
+  .chefai-mark {
+    position: relative;
+    display: inline-flex;
+    height: 2.75rem;
+    width: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 1rem;
+    color: #fffaf1;
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.22), transparent 45%),
+      linear-gradient(135deg, var(--kitchen-charcoal), #5a2c1f 52%, var(--kitchen-tomato));
+    box-shadow: 0 18px 34px rgba(73, 37, 27, 0.24);
+  }
+
+  .chefai-spark {
+    position: absolute;
+    right: -0.18rem;
+    top: -0.18rem;
+    border-radius: 999px;
+    color: var(--kitchen-gold);
+    filter: drop-shadow(0 4px 8px rgba(243, 170, 47, 0.42));
+  }
+
+  .chefai-glass {
+    border: 1px solid rgba(234, 217, 191, 0.88);
+    background: rgba(255, 250, 241, 0.72);
+    box-shadow: 0 22px 50px rgba(67, 47, 31, 0.1);
+    backdrop-filter: blur(18px);
+  }
+
+  .chefai-dark-card {
+    color: #fffaf1;
+    background:
+      radial-gradient(circle at top right, rgba(240, 90, 60, 0.42), transparent 18rem),
+      linear-gradient(135deg, #2b241f 0%, #17130f 100%);
+    box-shadow: 0 28px 60px rgba(35, 26, 20, 0.25);
+  }
+
+  .chefai-input {
+    border: 1px solid #ddc9ad;
+    background: rgba(255, 252, 246, 0.86);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  }
+
+  .chefai-input:focus {
+    border-color: var(--kitchen-tomato);
+    outline: 0;
+    box-shadow: 0 0 0 4px rgba(240, 90, 60, 0.13);
+  }
+}
+
+/* Palette remap for the existing Tailwind-heavy UI. */
+.bg-gray-50,
+.bg-slate-50 {
+  background-color: transparent;
+}
+
+.bg-white {
+  background-color: rgba(255, 250, 241, 0.94);
+}
+
+.border-gray-200,
+.border-slate-200 {
+  border-color: rgba(234, 223, 206, 0.95);
+}
+
+.border-gray-300,
+.border-slate-300 {
+  border-color: #d9cbb8;
+}
+
+.text-gray-900,
+.text-slate-900 {
+  color: var(--kitchen-ink);
+}
+
+.text-gray-700,
+.text-slate-700 {
+  color: #3f4a44;
+}
+
+.text-gray-600,
+.text-slate-600,
+.text-gray-500,
+.text-slate-500 {
+  color: var(--kitchen-muted);
+}
+
+.bg-emerald-500,
+.bg-emerald-600,
+.bg-green-500 {
+  background: linear-gradient(135deg, var(--kitchen-tomato), #de4b30 46%, var(--kitchen-tomato-dark));
+}
+
+.hover\:bg-emerald-600:hover,
+.hover\:bg-emerald-700:hover {
+  background: linear-gradient(135deg, #f06b4b, #b93626);
+}
+
+.disabled\:bg-emerald-400:disabled {
+  background: #efa28e;
+}
+
+.text-emerald-500,
+.text-emerald-600,
+.text-emerald-700 {
+  color: var(--kitchen-tomato);
+}
+
+.hover\:text-emerald-600:hover,
+.hover\:text-emerald-700:hover {
+  color: var(--kitchen-tomato-dark);
+}
+
+.bg-emerald-50,
+.bg-emerald-100 {
+  background-color: #fff0e8;
+}
+
+.text-emerald-800,
+.text-emerald-900 {
+  color: #7b2e21;
+}
+
+.border-emerald-100,
+.border-emerald-200,
+.border-emerald-300 {
+  border-color: #f3c4b4;
+}
+
+.hover\:bg-emerald-50:hover {
+  background-color: #fff0e8;
+}
+
+.focus\:border-emerald-500:focus {
+  border-color: var(--kitchen-tomato);
+}
+
+.focus\:ring-emerald-100:focus,
+.focus\:ring-emerald-200:focus,
+.focus\:ring-emerald-500:focus {
+  --tw-ring-color: rgba(232, 93, 63, 0.22);
+}
+
+.accent-emerald-500 {
+  accent-color: var(--kitchen-tomato);
+}
+
+.text-blue-600,
+.text-blue-500 {
+  color: var(--kitchen-sky);
+}
+
+.bg-blue-100,
+.bg-blue-500 {
+  background-color: #e8f3f6;
+}
+
+.hover\:bg-blue-600:hover {
+  background-color: #3d7f99;
+}
+
+.text-purple-600,
+.text-purple-700 {
+  color: var(--kitchen-sage);
+}
+
+.bg-purple-100 {
+  background-color: var(--kitchen-sage-soft);
+}
+
+.bg-slate-100,
+.bg-gray-100 {
+  background-color: rgba(95, 141, 107, 0.1);
+}
+
+.hover\:bg-slate-200:hover,
+.hover\:bg-gray-200:hover,
+.hover\:bg-gray-100:hover {
+  background-color: rgba(95, 141, 107, 0.16);
+}
+
+.shadow-sm {
+  box-shadow: 0 10px 24px rgba(68, 52, 35, 0.06);
+}
+
+.shadow-lg,
+.hover\:shadow-lg:hover,
+.hover\:shadow-md:hover {
+  box-shadow: 0 20px 44px rgba(68, 52, 35, 0.12);
 }

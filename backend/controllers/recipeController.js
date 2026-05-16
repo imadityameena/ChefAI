@@ -93,7 +93,8 @@ export const saveRecipe = async (req, res, next) => {
  */
 export const getRecipes = async (req, res, next) => {
     try {
-        const { search, cuisine_type, difficulty, dietary_tag, max_cook_time, sort_by, order, limit, offset } = req.query;
+        const { search, cuisine_type, difficulty, dietary_tag, max_cook_time, sort_by, sort_order, order, limit, offset } = req.query;
+        const normalizedSortOrder = sort_order || order;
 
         const recipes = await Recipe.findByUserId(req.user.id, {
             search,
@@ -102,7 +103,7 @@ export const getRecipes = async (req, res, next) => {
             dietary_tag,
             max_cook_time: max_cook_time ? parseInt(max_cook_time) : undefined,
             sort_by,
-            sort_order,
+            sort_order: normalizedSortOrder,
             limit: limit ? parseInt(limit) : undefined,
             offset: offset ? parseInt(offset) : undefined
         });

@@ -14,6 +14,18 @@ const CATEGORIES = [
     'Other'
 ];
 
+const UNITS = [
+    'pcs',
+    'kg',
+    'g',
+    'l',
+    'ml',
+    'cup',
+    'tbsp',
+    'tsp',
+    'pack'
+];
+
 const ShoppingList = () => {
     const [items, setItems] = useState([]);
     const [groupedItems, setGroupedItems] = useState({});
@@ -273,4 +285,212 @@ const ShoppingList = () => {
         </div>
     );
 };
+
+const ShoppingListItem = ({
+    item,
+    onToggle,
+    onDelete
+}) => {
+    return (
+        <div className="flex items-center justify-between px-6 py-4">
+            <button
+                type="button"
+                onClick={() => onToggle(item.id)}
+                className="flex items-start gap-3 text-left flex-1"
+            >
+                <span
+                    className={`mt-0.5 w-5 h-5 rounded border flex items-center justify-center transition-colors ${
+                        item.is_checked
+                            ? 'bg-emerald-500 border-emerald-500 text-white'
+                            : 'border-gray-300 text-transparent'
+                    }`}
+                >
+                    <Check className="w-3.5 h-3.5" />
+                </span>
+
+                <div>
+                    <p
+                        className={`font-medium ${
+                            item.is_checked
+                                ? 'text-gray-400 line-through'
+                                : 'text-gray-900'
+                        }`}
+                    >
+                        {item.ingredient_name}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                        {item.quantity} {item.unit}
+                    </p>
+                </div>
+            </button>
+
+            <button
+                type="button"
+                onClick={() => onDelete(item.id)}
+                className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                aria-label="Delete item"
+            >
+                <X className="w-4 h-4" />
+            </button>
+        </div>
+    );
+};
+
+const AddItemModal = ({
+    onClose,
+    onSuccess
+}) => {
+    const [ingredientName, setIngredientName] =
+        useState('');
+    const [quantity, setQuantity] = useState('1');
+    const [unit, setUnit] = useState('pcs');
+    const [category, setCategory] = useState('Other');
+    const [loading, setLoading] = useState(false);
+
+    const handleSubmit = async e => {
+        e.preventDefault();
+
+        if (!ingredientName.trim()) {
+            toast.error('Please enter item name');
+            return;
+        }
+
+        if (!quantity || Number(quantity) <= 0) {
+            toast.error('Please enter a valid quantity');
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            await api.post('/shopping-list', {
+                ingredient_name: ingredientName.trim(),
+                quantity: Number(quantity),
+                unit: unit.trim() || 'pcs',
+                category
+            });
+
+            toast.success('Item added');
+            await onSuccess();
+            onClose();
+        } catch (error) {
+            toast.error('Failed to add item');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl max-w-md w-full p-6">
+                <div className="flex items-center justify-between mb-5">
+                    <h2 className="text-xl font-semibold text-gray-900">
+                        Add Shopping Item
+                    </h2>
+
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                        aria-label="Close modal"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                            Item Name
+                        </label>
+                        <input
+                            type="text"
+                            value={ingredientName}
+                            onChange={e =>
+                                setIngredientName(e.target.value)
+                            }
+                            placeholder="e.g. Tomatoes"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                Quantity
+                            </label>
+                            <input
+                                type="number"
+                                min="0.01"
+                                step="0.01"
+                                value={quantity}
+                                onChange={e =>
+                                    setQuantity(e.target.value)
+                                }
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                Unit
+                            </label>
+                            <select
+                                value={unit}
+                                onChange={e =>
+                                    setUnit(e.target.value)
+                                }
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            >
+                                {UNITS.map(unitOption => (
+                                    <option key={unitOption} value={unitOption}>
+                                        {unitOption}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                            Category
+                        </label>
+                        <select
+                            value={category}
+                            onChange={e =>
+                                setCategory(e.target.value)
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        >
+                            {CATEGORIES.map(cat => (
+                                <option key={cat} value={cat}>
+                                    {cat}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-2">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                        >
+                            Cancel
+                        </button>
+
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                            {loading ? 'Adding...' : 'Add Item'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
 export default ShoppingList;

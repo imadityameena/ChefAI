@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import { ChefHat, Mail, Lock } from 'lucide-react';
+import BrandLogo from '../components/BrandLogo';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -28,19 +29,42 @@ const Login = () => {
     };
 
     return (
-        <div className="min-h-screen bg-linear-to-br from-emerald-50 to-white flex items-center justify-center p-4">
-            <div className="w-full max-w-md">
+        <div className="min-h-screen flex items-center justify-center p-4">
+            <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-lg md:grid-cols-[1fr_0.9fr]">
+                <div className="hidden bg-linear-to-br from-emerald-50 via-white to-amber-50 p-10 md:flex md:flex-col md:justify-between">
+                    <BrandLogo />
+
+                    <div>
+                        <p className="mb-3 text-sm font-bold uppercase tracking-[0.2em] text-emerald-600">
+                            AI kitchen assistant
+                        </p>
+                        <h2 className="max-w-sm text-4xl font-black leading-tight text-gray-900">
+                            Turn what you have into what you crave.
+                        </h2>
+                        <p className="mt-4 max-w-md text-base leading-7 text-gray-600">
+                            Plan meals, manage pantry items, and generate recipes from a calm, chef-inspired workspace.
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3 text-center text-sm font-semibold text-gray-700">
+                        <div className="rounded-xl bg-white/80 p-3">Pantry</div>
+                        <div className="rounded-xl bg-white/80 p-3">Recipes</div>
+                        <div className="rounded-xl bg-white/80 p-3">Planner</div>
+                    </div>
+                </div>
+
+                <div className="w-full p-6 sm:p-8 md:p-10">
                 {/* Logo */}
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-500 rounded-2xl mb-4">
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-500 rounded-2xl mb-4 shadow-lg">
                         <ChefHat className="w-9 h-9 text-white" />
                     </div>
                     <h1 className="text-3xl font-bold text-gray-900">Welcome Back</h1>
-                    <p className="text-gray-600 mt-2">Sign in to continue to AI Recipe Generator</p>
+                    <p className="text-gray-600 mt-2">Sign in to continue to ChefAI</p>
                 </div>
 
                 {/* Login Form */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+                <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8">
                     <form onSubmit={handleSubmit} className="space-y-5">
                         {/* Email */}
                         <div>
@@ -74,7 +98,7 @@ const Login = () => {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="w-full pl-11 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
-                                    placeholder="••••••••"
+                                    placeholder="********"
                                     required
                                 />
                             </div>
@@ -91,7 +115,7 @@ const Login = () => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-medium py-2.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loading ? 'Signing in...' : 'Sign In'}
                         </button>
@@ -104,6 +128,7 @@ const Login = () => {
                             Sign up
                         </Link>
                     </p>
+                </div>
                 </div>
             </div>
         </div>

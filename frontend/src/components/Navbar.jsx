@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, NavLink as RouterNavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
     ChefHat,
@@ -11,6 +11,7 @@ import {
     ChevronDown
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
+import BrandLogo from './BrandLogo';
 
 const Navbar = () => {
     const { user, logout } = useAuth();
@@ -49,17 +50,16 @@ const Navbar = () => {
     }, []);
 
     return (
-        <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <nav className="sticky top-0 z-50 border-b border-gray-200 bg-white/85 backdrop-blur-xl">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between items-center h-16">
+                <div className="flex justify-between items-center min-h-18 py-3 gap-4">
 
                     {/* Logo */}
                     <Link
                         to="/dashboard"
-                        className="flex items-center gap-2 text-xl font-semibold text-gray-900"
+                        className="flex items-center"
                     >
-                        <ChefHat className="w-7 h-7 text-emerald-500" />
-                        <span>AI Recipe Generator</span>
+                        <BrandLogo />
                     </Link>
 
                     {/* Navigation Links */}
@@ -112,9 +112,9 @@ const Navbar = () => {
                                     !isDropdownOpen
                                 )
                             }
-                            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                            className="flex items-center gap-2 rounded-xl border border-transparent px-2.5 py-2 text-sm text-gray-700 transition-colors hover:border-gray-200 hover:bg-gray-100 hover:text-gray-900"
                         >
-                            <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white font-semibold">
+                            <div className="w-9 h-9 bg-emerald-500 rounded-full flex items-center justify-center text-white font-semibold shadow-sm">
                                 {user?.name?.charAt(0).toUpperCase() || 'U'}
                             </div>
 
@@ -133,10 +133,10 @@ const Navbar = () => {
 
                         {/* Dropdown Menu */}
                         {isDropdownOpen && (
-                            <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                            <div className="absolute right-0 mt-3 w-64 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg z-50">
 
                                 {/* User Info */}
-                                <div className="px-4 py-3 border-b border-gray-200">
+                                <div className="px-4 py-4 border-b border-gray-200 bg-gray-50">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center text-white font-semibold">
                                             {user?.name?.charAt(0).toUpperCase() || 'U'}
@@ -185,13 +185,19 @@ const Navbar = () => {
 
 const NavLink = ({ to, icon, label }) => {
     return (
-        <Link
+        <RouterNavLink
             to={to}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+            className={({ isActive }) =>
+                `flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${
+                    isActive
+                        ? 'bg-emerald-50 text-emerald-700 shadow-sm'
+                        : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'
+                }`
+            }
         >
             {icon}
             <span>{label}</span>
-        </Link>
+        </RouterNavLink>
     );
 };
 
