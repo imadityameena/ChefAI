@@ -273,3 +273,4 @@ const ShoppingList = () => {
         </div>
     );
 };
+export default ShoppingList;
