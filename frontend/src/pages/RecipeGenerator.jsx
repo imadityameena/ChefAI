@@ -209,7 +209,12 @@ const RecipeGenerator = () => {
               <div className="mt-5 grid grid-cols-3 gap-3">
                 <HeroMetric label="Items" value={ingredients.length || "0"} />
                 <HeroMetric label="Serves" value={servings} />
-                <HeroMetric label="Mode" value={cookingTime === "medium" ? "Bal" : cookingTime.slice(0, 3)} />
+                <HeroMetric
+                  label="Mode"
+                  value={
+                    cookingTime === "medium" ? "Bal" : cookingTime.slice(0, 3)
+                  }
+                />
               </div>
             </div>
           </div>
@@ -365,7 +370,9 @@ const RecipeGenerator = () => {
                     min="1"
                     max="12"
                     value={servings}
-                    onChange={(event) => setServings(Number(event.target.value))}
+                    onChange={(event) =>
+                      setServings(Number(event.target.value))
+                    }
                     className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-emerald-500"
                   />
                 </div>
@@ -393,7 +400,9 @@ const RecipeGenerator = () => {
                           <span className="block text-sm font-black">
                             {option.label}
                           </span>
-                          <span className={`mt-1 block text-xs ${active ? "text-white/75" : "text-slate-500"}`}>
+                          <span
+                            className={`mt-1 block text-xs ${active ? "text-white/75" : "text-slate-500"}`}
+                          >
                             {option.hint}
                           </span>
                         </button>
@@ -551,7 +560,9 @@ const RecipeResult = ({ recipe, saving, onSave }) => {
         </div>
 
         <div className="mt-5 flex flex-wrap gap-2">
-          <RecipePill label={recipe.cuisineType || recipe.cuisine_type || "Custom"} />
+          <RecipePill
+            label={recipe.cuisineType || recipe.cuisine_type || "Custom"}
+          />
           <RecipePill label={recipe.difficulty || "medium"} tone="slate" />
           <RecipePill label={`${prepTime} min prep`} tone="slate" />
           <RecipePill label={`${cookTime} min cook`} tone="slate" />
@@ -563,9 +574,21 @@ const RecipeResult = ({ recipe, saving, onSave }) => {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatTile icon={<Clock className="h-5 w-5" />} label="Prep" value={`${prepTime}m`} />
-        <StatTile icon={<Users className="h-5 w-5" />} label="Servings" value={servings} />
-        <StatTile icon={<ChefHat className="h-5 w-5" />} label="Cook" value={`${cookTime}m`} />
+        <StatTile
+          icon={<Clock className="h-5 w-5" />}
+          label="Prep"
+          value={`${prepTime}m`}
+        />
+        <StatTile
+          icon={<Users className="h-5 w-5" />}
+          label="Servings"
+          value={servings}
+        />
+        <StatTile
+          icon={<ChefHat className="h-5 w-5" />}
+          label="Cook"
+          value={`${cookTime}m`}
+        />
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-2">
@@ -573,9 +596,12 @@ const RecipeResult = ({ recipe, saving, onSave }) => {
           <h4 className="text-base font-black text-slate-900">Ingredients</h4>
           <div className="mt-3 space-y-2">
             {ingredients.map((ingredient, index) => {
-              const name = typeof ingredient === "string" ? ingredient : ingredient.name;
-              const quantity = typeof ingredient === "string" ? "" : ingredient.quantity;
-              const unit = typeof ingredient === "string" ? "" : ingredient.unit;
+              const name =
+                typeof ingredient === "string" ? ingredient : ingredient.name;
+              const quantity =
+                typeof ingredient === "string" ? "" : ingredient.quantity;
+              const unit =
+                typeof ingredient === "string" ? "" : ingredient.unit;
 
               return (
                 <div
@@ -595,10 +621,26 @@ const RecipeResult = ({ recipe, saving, onSave }) => {
         <div>
           <h4 className="text-base font-black text-slate-900">Nutrition</h4>
           <div className="mt-3 grid grid-cols-2 gap-3">
-            <NutritionBadge label="Calories" value={nutrition.calories ?? "-"} unit="" />
-            <NutritionBadge label="Protein" value={nutrition.protein ?? "-"} unit="g" />
-            <NutritionBadge label="Carbs" value={nutrition.carbs ?? "-"} unit="g" />
-            <NutritionBadge label="Fats" value={nutrition.fats ?? "-"} unit="g" />
+            <NutritionBadge
+              label="Calories"
+              value={nutrition.calories ?? "-"}
+              unit=""
+            />
+            <NutritionBadge
+              label="Protein"
+              value={nutrition.protein ?? "-"}
+              unit="g"
+            />
+            <NutritionBadge
+              label="Carbs"
+              value={nutrition.carbs ?? "-"}
+              unit="g"
+            />
+            <NutritionBadge
+              label="Fats"
+              value={nutrition.fats ?? "-"}
+              unit="g"
+            />
           </div>
         </div>
       </div>
@@ -648,7 +690,9 @@ const RecipePill = ({ label, tone = "emerald" }) => {
       : "bg-emerald-50 text-emerald-700";
 
   return (
-    <span className={`rounded-full px-3 py-1.5 text-xs font-black ${toneClasses}`}>
+    <span
+      className={`rounded-full px-3 py-1.5 text-xs font-black ${toneClasses}`}
+    >
       {label}
     </span>
   );

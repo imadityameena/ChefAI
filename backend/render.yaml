@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: recipe-generator-api
+    runtime: node
+    startCommand: npm start
+    plan: free
+    buildCommand: npm install
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: DB_HOST
+        fromDatabase:
+          name: recipe-db
+          property: host
+      - key: DB_PORT
+        value: 5432
+      - key: DB_NAME
+        fromDatabase:
+          name: recipe-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: recipe-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: recipe-db
+          property: password
+
+databases:
+  - name: recipe-db
+    databaseName: recipe_generator
+    user: postgres
+    plan: free
