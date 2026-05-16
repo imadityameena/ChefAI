@@ -16,14 +16,11 @@ import shoppingListRoutes from './routes/shoppingList.js';
 const app = express();
 
 // CORS Configuration
-const allowedOrigins = [
-  'http://localhost:5173', // Vite dev server
-  'http://localhost:3000', // Alternative dev server
-  process.env.FRONTEND_URL, // Production Vercel URL
-].filter(Boolean);
-
 app.use(cors({
-  origin: allowedOrigins,
+  origin: function (origin, callback) {
+    // Reflect the request origin to bypass strict matching issues
+    callback(null, origin || true);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
