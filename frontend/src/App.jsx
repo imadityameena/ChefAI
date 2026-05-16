@@ -1,20 +1,25 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
-import { AuthProvider } from './context/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { Toaster } from "react-hot-toast";
+import { AuthProvider } from "./context/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 // Pages
-import Landing from './pages/Landing';
-import Login from './pages/Login';
-import SignUp from './pages/SignUp';
-import Dashboard from './pages/Dashboard';
-import Pantry from './pages/Pantry';
-import RecipeGenerator from './pages/RecipeGenerator';
-import MyRecipes from './pages/MyRecipes';
-import RecipeDetail from './pages/RecipeDetail';
-import ShoppingList from './pages/ShoppingList';
-import Settings from './pages/Settings';
-import MealPlanner from './pages/MealPlanner';
+import Landing from "./pages/Landing";
+import Login from "./pages/Login";
+import SignUp from "./pages/SignUp";
+import Dashboard from "./pages/Dashboard";
+import Pantry from "./pages/Pantry";
+import RecipeGenerator from "./pages/RecipeGenerator";
+import MyRecipes from "./pages/MyRecipes";
+import RecipeDetail from "./pages/RecipeDetail";
+import ShoppingList from "./pages/ShoppingList";
+import Settings from "./pages/Settings";
+import MealPlanner from "./pages/MealPlanner";
 
 function App() {
   return (
@@ -36,13 +41,62 @@ function App() {
           />
 
           {/* Placeholder routes - to be implemented */}
-          <Route path="/pantry" element={<ProtectedRoute><Pantry /></ProtectedRoute>} />
-          <Route path="/generate" element={<ProtectedRoute><RecipeGenerator /></ProtectedRoute>} />
-          <Route path="/recipes" element={<ProtectedRoute><MyRecipes /></ProtectedRoute>} />
-          <Route path="/recipes/:id" element={<ProtectedRoute><RecipeDetail /></ProtectedRoute>} />
-          <Route path="/meal-plan" element={<ProtectedRoute><MealPlanner /></ProtectedRoute>} />
-          <Route path="/shopping-list" element={<ProtectedRoute><ShoppingList /></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route
+            path="/pantry"
+            element={
+              <ProtectedRoute>
+                <Pantry />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/generate"
+            element={
+              <ProtectedRoute>
+                <RecipeGenerator />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/recipes"
+            element={
+              <ProtectedRoute>
+                <MyRecipes />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/recipes/:id"
+            element={
+              <ProtectedRoute>
+                <RecipeDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/meal-plan"
+            element={
+              <ProtectedRoute>
+                <MealPlanner />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/shopping-list"
+            element={
+              <ProtectedRoute>
+                <ShoppingList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Default redirect / Landing */}
           <Route path="/" element={<Landing />} />
@@ -56,22 +110,22 @@ function App() {
         toastOptions={{
           duration: 3000,
           style: {
-            background: '#fffaf1',
-            color: '#211b17',
-            border: '1px solid #ead9bf',
-            borderRadius: '1rem',
-            boxShadow: '0 18px 44px rgba(67, 47, 31, 0.14)',
+            background: "#fffaf1",
+            color: "#211b17",
+            border: "1px solid #ead9bf",
+            borderRadius: "1rem",
+            boxShadow: "0 18px 44px rgba(67, 47, 31, 0.14)",
           },
           success: {
             iconTheme: {
-              primary: '#f05a3c',
-              secondary: '#fffaf1',
+              primary: "#f05a3c",
+              secondary: "#fffaf1",
             },
           },
           error: {
             iconTheme: {
-              primary: '#ef4444',
-              secondary: '#fff',
+              primary: "#ef4444",
+              secondary: "#fff",
             },
           },
         }}
