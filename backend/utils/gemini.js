@@ -94,8 +94,14 @@ Make sure the recipe is creative, delicious, and uses the provided ingredients e
     return recipe;
 
   } catch (error) {
-    console.error('Gemini API error:', error);
-    throw new Error('Failed to generate recipe. Please try again.');
+    // Log detailed error info for debugging (including any response body)
+    if (error && error.response) {
+      console.error('Gemini API error - response:', error.response);
+    } else {
+      console.error('Gemini API error:', error);
+    }
+    // Surface a clearer message while keeping HTTP status handling to the caller
+    throw new Error(`Failed to generate recipe: ${error.message || 'unknown error'}`);
   }
 };
 

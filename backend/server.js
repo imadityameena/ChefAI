@@ -33,6 +33,16 @@ app.use('/api/recipes', recipeRoutes);
 app.use('/api/meal-plans', mealPlanRoutes);
 app.use('/api/shopping-list', shoppingListRoutes);
 
+// Error handler
+app.use((error, req, res, next) => {
+  const statusCode = error.statusCode || error.status || 500;
+
+  res.status(statusCode).json({
+    success: false,
+    message: error.message || 'Internal Server Error'
+  });
+});
+
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
