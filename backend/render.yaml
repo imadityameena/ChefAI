@@ -3,9 +3,8 @@ services:
     name: recipe-generator-api
     runtime: node
     startCommand: npm start
-    buildCommand: npm install
     plan: free
-    healthCheckPath: /api
+    buildCommand: npm install
     envVars:
       - key: NODE_ENV
         value: production
@@ -13,20 +12,27 @@ services:
         value: 5000
       - key: FRONTEND_URL
         value: https://chef-ai-xqr8.vercel.app
-      - key: DATABASE_URL
+      - key: DB_HOST
         fromDatabase:
           name: recipe-db
-          property: connectionString
-      - key: GEMINI_API_KEY
-        scope: build
-        isStatic: false
-      - key: JWT_SECRET
-        scope: build
-        isStatic: false
+          property: host
+      - key: DB_PORT
+        value: 5432
+      - key: DB_NAME
+        fromDatabase:
+          name: recipe-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: recipe-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: recipe-db
+          property: password
 
 databases:
   - name: recipe-db
     databaseName: recipe_generator
-    user: postgres_user
+    user: postgres
     plan: free
-    postgresMajorVersion: "15"
