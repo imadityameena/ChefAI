@@ -38,6 +38,15 @@ app.get('/', (req, res) => {
   res.json({ message: 'AI Recipe Generator API' });
 });
 
+// API health check
+app.get('/api', (req, res) => {
+  res.json({ 
+    status: 'success',
+    message: 'AI Recipe Generator API is running',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);

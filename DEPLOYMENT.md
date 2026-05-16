@@ -5,6 +5,7 @@
 ### Frontend Deployment (Vercel)
 
 1. **Push to GitHub**
+
    ```bash
    git add .
    git commit -m "Setup deployment configuration"
@@ -65,16 +66,19 @@
 ## Important Considerations
 
 ### Security
+
 - Never commit `.env` files (already in `.gitignore`)
 - Use strong, randomly generated JWT_SECRET
 - Ensure DATABASE_URL uses SSL in production
 - Use environment-specific variables for API keys
 
 ### CORS Configuration
+
 - Frontend URL is automatically allowed in the backend
 - Add any additional allowed origins in `server.js` if needed
 
 ### Database Migrations
+
 - Run database migrations on Render before first deployment
 - Use the following command in Render console or add to build script:
   ```bash
@@ -82,27 +86,32 @@
   ```
 
 ### Vercel Build Settings
+
 - Root Directory: `frontend`
 - Build Command: `npm run build`
 - Output Directory: `dist`
 - Install Command: `npm install`
 
 ### Render Service Health Checks
+
 - Render checks the root endpoint `/` for health
 - Ensure your API responds with a 200 status code at `/`
 
 ## Troubleshooting
 
 ### CORS Errors
+
 - Verify `FRONTEND_URL` is set correctly in backend environment variables
 - Check that the frontend URL matches exactly (including https://)
 
 ### Database Connection Issues
+
 - Verify `DATABASE_URL` format is correct
 - Ensure PostgreSQL database is running on Render
 - Check firewall/security group settings
 
 ### Build Failures
+
 - Check that `package.json` has all required scripts
 - Verify all dependencies are listed in `package.json`
 - Check build logs in Vercel/Render dashboard
