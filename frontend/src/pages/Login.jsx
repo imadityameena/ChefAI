@@ -30,9 +30,9 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-lg md:grid-cols-[1fr_0.9fr]">
-        <div className="hidden bg-linear-to-br from-emerald-50 via-white to-amber-50 p-10 md:flex md:flex-col md:justify-between">
-          <BrandLogo />
+      <div className="grid w-full max-w-3xl overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-lg md:grid-cols-2">
+        <div className="hidden bg-linear-to-br from-emerald-50 via-white to-amber-50 p-8 md:flex md:flex-col md:justify-between">
+          <BrandLogo className="scale-[1.35] origin-left" />
 
           <div>
             <p className="mb-3 text-sm font-bold uppercase tracking-[0.2em] text-emerald-600">
@@ -54,10 +54,10 @@ const Login = () => {
           </div>
         </div>
 
-        <div className="w-full p-6 sm:p-8 md:p-10">
+        <div className="w-full p-6 sm:p-8">
           {/* Logo */}
-          <div className="mb-8 text-center">
-            <BrandLogo className="mx-auto" />
+          <div className="mb-6 text-center">
+            <BrandLogo className="mx-auto scale-[1.35] origin-center" />
             <h1 className="mt-5 text-3xl font-bold text-gray-900">
               Welcome Back
             </h1>
@@ -65,8 +65,8 @@ const Login = () => {
           </div>
 
           {/* Login Form */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8">
-            <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="bg-white rounded-2xl border border-gray-200 p-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
               {/* Email */}
               <div>
                 <label
