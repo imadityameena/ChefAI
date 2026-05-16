@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { ChefHat, Mail, Lock } from 'lucide-react';
+import { Mail, Lock } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo';
 
 const Login = () => {
@@ -54,18 +54,16 @@ const Login = () => {
                 </div>
 
                 <div className="w-full p-6 sm:p-8 md:p-10">
-                {/* Logo */}
-                <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-500 rounded-2xl mb-4 shadow-lg">
-                        <ChefHat className="w-9 h-9 text-white" />
+                    {/* Logo */}
+                    <div className="mb-8 text-center">
+                        <BrandLogo className="mx-auto" />
+                        <h1 className="mt-5 text-3xl font-bold text-gray-900">Welcome Back</h1>
+                        <p className="mt-2 text-gray-600">Sign in to continue to ChefAI</p>
                     </div>
-                    <h1 className="text-3xl font-bold text-gray-900">Welcome Back</h1>
-                    <p className="text-gray-600 mt-2">Sign in to continue to ChefAI</p>
-                </div>
 
-                {/* Login Form */}
-                <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8">
-                    <form onSubmit={handleSubmit} className="space-y-5">
+                    {/* Login Form */}
+                    <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8">
+                        <form onSubmit={handleSubmit} className="space-y-5">
                         {/* Email */}
                         <div>
                             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
@@ -128,7 +126,7 @@ const Login = () => {
                             Sign up
                         </Link>
                     </p>
-                </div>
+                    </div>
                 </div>
             </div>
         </div>

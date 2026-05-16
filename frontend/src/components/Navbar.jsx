@@ -52,14 +52,14 @@ const Navbar = () => {
     return (
         <nav className="sticky top-0 z-50 border-b border-gray-200 bg-white/85 backdrop-blur-xl">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between items-center min-h-18 py-3 gap-4">
+            <div className="flex justify-between items-center min-h-14 py-1.5 gap-2.5 sm:gap-3">
 
                     {/* Logo */}
                     <Link
                         to="/dashboard"
-                        className="flex items-center"
+                        className="flex items-center shrink-0"
                     >
-                        <BrandLogo />
+                        <BrandLogo compact imageClassName="h-28 sm:h-32" />
                     </Link>
 
                     {/* Navigation Links */}
@@ -188,7 +188,7 @@ const NavLink = ({ to, icon, label }) => {
         <RouterNavLink
             to={to}
             className={({ isActive }) =>
-                `flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${
+                `flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-sm font-semibold transition-colors ${
                     isActive
                         ? 'bg-emerald-50 text-emerald-700 shadow-sm'
                         : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'

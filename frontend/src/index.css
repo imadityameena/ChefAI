@@ -5,14 +5,14 @@
 
 @layer base {
   :root {
-    --kitchen-cream: #fff6e7;
-    --kitchen-surface: #fffaf1;
+    --kitchen-cream: #fff8ef;
+    --kitchen-surface: #fffaf4;
     --kitchen-card: #ffffff;
     --kitchen-ink: #211b17;
     --kitchen-muted: #766d61;
-    --kitchen-line: #ead9bf;
-    --kitchen-tomato: #f05a3c;
-    --kitchen-tomato-dark: #b93624;
+    --kitchen-line: #f1dcc3;
+    --kitchen-tomato: #fc8019;
+    --kitchen-tomato-dark: #e96a00;
     --kitchen-sage: #456f55;
     --kitchen-sage-soft: #eaf4e8;
     --kitchen-gold: #f3aa2f;
@@ -34,9 +34,9 @@
     min-height: 100vh;
     color: var(--kitchen-ink);
     background:
-      radial-gradient(circle at top left, rgba(243, 170, 47, 0.26), transparent 28rem),
+      radial-gradient(circle at top left, rgba(252, 128, 25, 0.2), transparent 28rem),
       radial-gradient(circle at top right, rgba(69, 111, 85, 0.2), transparent 30rem),
-      linear-gradient(135deg, #fff6e7 0%, #fbefe0 44%, #eaf4e8 100%);
+      linear-gradient(135deg, #fff8ef 0%, #fff1df 44%, #f0f7ed 100%);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
 
@@ -88,9 +88,9 @@
   .kitchen-page {
     min-height: 100vh;
     background:
-      radial-gradient(circle at 12% 4%, rgba(240, 90, 60, 0.14), transparent 22rem),
+      radial-gradient(circle at 12% 4%, rgba(252, 128, 25, 0.14), transparent 22rem),
       radial-gradient(circle at 88% 10%, rgba(69, 111, 85, 0.18), transparent 24rem),
-      linear-gradient(180deg, rgba(255, 246, 231, 0.96) 0%, rgba(251, 239, 224, 0.98) 45%, rgba(234, 244, 232, 0.9) 100%);
+      linear-gradient(180deg, rgba(255, 248, 239, 0.96) 0%, rgba(255, 241, 223, 0.98) 45%, rgba(240, 247, 237, 0.9) 100%);
   }
 
   .kitchen-shell {
@@ -105,7 +105,7 @@
 
   .kitchen-button {
     background: linear-gradient(135deg, var(--kitchen-tomato), var(--kitchen-tomato-dark));
-    box-shadow: 0 14px 28px rgba(232, 93, 63, 0.22);
+    box-shadow: 0 14px 28px rgba(252, 128, 25, 0.24);
   }
 
   .chefai-mark {
@@ -200,16 +200,16 @@
 .bg-emerald-500,
 .bg-emerald-600,
 .bg-green-500 {
-  background: linear-gradient(135deg, var(--kitchen-tomato), #de4b30 46%, var(--kitchen-tomato-dark));
+  background: linear-gradient(135deg, #ff983f, var(--kitchen-tomato) 48%, var(--kitchen-tomato-dark));
 }
 
 .hover\:bg-emerald-600:hover,
 .hover\:bg-emerald-700:hover {
-  background: linear-gradient(135deg, #f06b4b, #b93626);
+  background: linear-gradient(135deg, #ff8f30, #db6200);
 }
 
 .disabled\:bg-emerald-400:disabled {
-  background: #efa28e;
+  background: #ffc18d;
 }
 
 .text-emerald-500,
@@ -225,22 +225,22 @@
 
 .bg-emerald-50,
 .bg-emerald-100 {
-  background-color: #fff0e8;
+  background-color: #fff4e8;
 }
 
 .text-emerald-800,
 .text-emerald-900 {
-  color: #7b2e21;
+  color: #8a3d00;
 }
 
 .border-emerald-100,
 .border-emerald-200,
 .border-emerald-300 {
-  border-color: #f3c4b4;
+  border-color: #f7cfac;
 }
 
 .hover\:bg-emerald-50:hover {
-  background-color: #fff0e8;
+  background-color: #fff4e8;
 }
 
 .focus\:border-emerald-500:focus {
@@ -250,7 +250,7 @@
 .focus\:ring-emerald-100:focus,
 .focus\:ring-emerald-200:focus,
 .focus\:ring-emerald-500:focus {
-  --tw-ring-color: rgba(232, 93, 63, 0.22);
+  --tw-ring-color: rgba(252, 128, 25, 0.24);
 }
 
 .accent-emerald-500 {
