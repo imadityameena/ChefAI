@@ -13,14 +13,10 @@ export const getProfile = async (
     next
 ) => {
     try {
-        const user = await User.findById(
-            req.user.id
-        );
-
-        const preferences =
-            await UserPreference.findByUserId(
-                req.user.id
-            );
+        const [user, preferences] = await Promise.all([
+            User.findById(req.user.id),
+            UserPreference.findByUserId(req.user.id)
+        ]);
 
         res.json({
             success: true,

@@ -82,7 +82,7 @@ class Recipe {
         const ingredientValues = validIngredients
           .map(
             (ing, idx) =>
-              `($1, $${idx * 3 + 2}, $${idx * 3 + 3}, $${idx * 3 + 4})`
+              `($1, $${idx * 3 + 2}, $${idx * 3 + 3}, $${idx * 3 + 4}, ${idx})`
           )
           .join(', ');
 
@@ -98,7 +98,7 @@ class Recipe {
 
         await client.query(
           `INSERT INTO recipe_ingredients 
-          (recipe_id, ingredient_name, quantity, unit) 
+          (recipe_id, ingredient_name, quantity, unit, position) 
           VALUES ${ingredientValues}`,
           ingredientParams
         );
@@ -137,34 +137,36 @@ class Recipe {
    * Get recipe by ID with ingredients and nutrition
    */
   static async findById(id, userId) {
-    const recipeResult = await db.query(
-      'SELECT * FROM recipes WHERE id = $1 AND user_id = $2',
+    // One round trip: recipe + ingredients + nutrition together
+    const result = await db.query(
+      `SELECT r.*,
+        COALESCE(
+          (SELECT json_agg(
+              json_build_object(
+                'name', ri.ingredient_name,
+                'quantity', ri.quantity,
+                'unit', ri.unit
+              ) ORDER BY ri.position NULLS LAST, ri.ctid
+            )
+           FROM recipe_ingredients ri
+           WHERE ri.recipe_id = r.id),
+          '[]'::json
+        ) AS ingredients,
+        (SELECT json_build_object(
+            'calories', rn.calories,
+            'protein', rn.protein,
+            'carbs', rn.carbs,
+            'fats', rn.fats,
+            'fiber', rn.fiber
+          )
+         FROM recipe_nutrition rn
+         WHERE rn.recipe_id = r.id) AS nutrition
+      FROM recipes r
+      WHERE r.id = $1 AND r.user_id = $2`,
       [id, userId]
     );
 
-    if (recipeResult.rows.length === 0) {
-      return null;
-    }
-
-    const recipe = recipeResult.rows[0];
-
-    // Get ingredients
-    const ingredientsResult = await db.query(
-      'SELECT ingredient_name as name, quantity, unit FROM recipe_ingredients WHERE recipe_id = $1',
-      [id]
-    );
-
-    // Get nutrition
-    const nutritionResult = await db.query(
-      'SELECT calories, protein, carbs, fats, fiber FROM recipe_nutrition WHERE recipe_id = $1',
-      [id]
-    );
-
-    return {
-      ...recipe,
-      ingredients: ingredientsResult.rows,
-      nutrition: nutritionResult.rows[0] || null
-    };
+    return result.rows[0] || null;
   }
 
   /**

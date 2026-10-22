@@ -50,7 +50,9 @@ class ShoppingList {
                 );
             });
 
-            // Insert shopping list items (subtract pantry quantities)
+            // Work out what's still needed after subtracting the pantry
+            const toInsert = [];
+
             for (const ing of ingredients) {
                 const key = `${ing.ingredient_name.trim().toLowerCase()}_${ing.unit}`;
                 const pantryQty = pantryMap.get(key) || 0;
@@ -61,24 +63,36 @@ class ShoppingList {
                 );
 
                 if (neededQty > 0) {
-                    await client.query(
-                        `INSERT INTO shopping_list_items
-                        (user_id, ingredient_name, quantity, unit, from_meal_plan, category)
-                        VALUES ($1, $2, $3, $4, true, $5)`,
-                        [
-                            userId,
-                            ing.ingredient_name,
-                            neededQty,
-                            ing.unit,
-                            'Uncategorized'
-                        ]
-                    );
+                    toInsert.push(ing.ingredient_name, neededQty, ing.unit);
                 }
             }
 
+            // Insert everything in one query instead of one per item
+            if (toInsert.length > 0) {
+                const rows = [];
+                for (let i = 0; i < toInsert.length; i += 3) {
+                    rows.push(`($1, $${i + 2}, $${i + 3}, $${i + 4}, true, 'Uncategorized')`);
+                }
+
+                await client.query(
+                    `INSERT INTO shopping_list_items
+                    (user_id, ingredient_name, quantity, unit, from_meal_plan, category)
+                    VALUES ${rows.join(', ')}`,
+                    [userId, ...toInsert]
+                );
+            }
+
+            // Read the result inside the transaction (same connection)
+            const listResult = await client.query(
+                `SELECT * FROM shopping_list_items
+                WHERE user_id = $1
+                ORDER BY category, ingredient_name`,
+                [userId]
+            );
+
             await client.query('COMMIT');
 
-            return await this.findByUserId(userId);
+            return listResult.rows;
 
         } catch (error) {
             await client.query('ROLLBACK');
@@ -250,33 +264,21 @@ class ShoppingList {
         try {
             await client.query('BEGIN');
 
-            // Get checked items
+            // Move checked items to the pantry in one statement:
+            // delete them from the list and insert the deleted rows into pantry_items
             const checkedItems = await client.query(
-                `SELECT * FROM shopping_list_items
-                WHERE user_id = $1 AND is_checked = true`,
-                [userId]
-            );
-
-            // Add to pantry
-            for (const item of checkedItems.rows) {
-                await client.query(
-                    `INSERT INTO pantry_items
-                    (user_id, name, quantity, unit, category)
-                    VALUES ($1, $2, $3, $4, $5)`,
-                    [
-                        userId,
-                        item.ingredient_name,
-                        item.quantity,
-                        item.unit,
-                        item.category
-                    ]
-                );
-            }
-
-            // Delete checked items from shopping list
-            await client.query(
-                `DELETE FROM shopping_list_items
-                WHERE user_id = $1 AND is_checked = true`,
+                `WITH moved AS (
+                    DELETE FROM shopping_list_items
+                    WHERE user_id = $1 AND is_checked = true
+                    RETURNING *
+                ),
+                inserted AS (
+                    INSERT INTO pantry_items (user_id, name, quantity, unit, category)
+                    SELECT user_id, ingredient_name, quantity, unit,
+                           COALESCE(category, 'Other')
+                    FROM moved
+                )
+                SELECT * FROM moved`,
                 [userId]
             );
 

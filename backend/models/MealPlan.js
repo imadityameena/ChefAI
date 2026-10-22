@@ -45,8 +45,8 @@ class MealPlan {
       FROM meal_plans mp
       JOIN recipes r ON mp.recipe_id = r.id
       WHERE mp.user_id = $1
-      AND mp.meal_date >= $2
-      AND mp.meal_date <= $3
+      AND mp.meal_date >= $2::date
+      AND mp.meal_date <= COALESCE($3::date, $2::date + 6)
       ORDER BY mp.meal_date ASC,
       CASE mp.meal_type
         WHEN 'breakfast' THEN 1
@@ -63,16 +63,11 @@ class MealPlan {
    * Get weekly meal plan
    */
   static async getWeeklyPlan(userId, weekStartDate) {
-    // Let Postgres do the date math to avoid timezone shifts in JS
-    const result = await db.query(
-      `SELECT ($1::date + 6)::text AS end_date`,
-      [weekStartDate]
-    );
-
+    // Postgres does the date math (no timezone shifts, no extra query)
     return await this.findByDateRange(
       userId,
       weekStartDate,
-      result.rows[0].end_date
+      null
     );
   }
 

@@ -75,8 +75,10 @@ export const generateRecipe = async (req, res, next) => {
  */
 export const getPantrySuggestions = async (req, res, next) => {
   try {
-    const pantryItems = await PantryItem.findByUserId(req.user.id);
-    const expiringItems = await PantryItem.getExpiringSoon(req.user.id, 7);
+    const [pantryItems, expiringItems] = await Promise.all([
+      PantryItem.findByUserId(req.user.id),
+      PantryItem.getExpiringSoon(req.user.id, 7),
+    ]);
 
     const expiringNames = expiringItems.map((item) => item.name);
     const suggestions = await generatePantrySuggestionsAI(

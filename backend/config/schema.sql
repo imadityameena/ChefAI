@@ -72,6 +72,9 @@ CREATE TABLE IF NOT EXISTS recipe_ingredients (
 ALTER TABLE recipe_ingredients ALTER COLUMN quantity DROP NOT NULL;
 ALTER TABLE recipe_ingredients ALTER COLUMN unit SET DEFAULT '';
 
+-- Keeps ingredients in the order the recipe lists them
+ALTER TABLE recipe_ingredients ADD COLUMN IF NOT EXISTS position INT;
+
 -- Recipe Nutrition Table
 CREATE TABLE IF NOT EXISTS recipe_nutrition (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -134,6 +137,18 @@ ON meal_plans(user_id, meal_date);
 
 CREATE INDEX IF NOT EXISTS idx_shopping_list_user
 ON shopping_list_items(user_id);
+
+-- Used every time a recipe is opened or a shopping list is built
+CREATE INDEX IF NOT EXISTS idx_recipe_ingredients_recipe_id
+ON recipe_ingredients(recipe_id);
+
+-- Used when a recipe is deleted (cascade) and when joining meal plans to recipes
+CREATE INDEX IF NOT EXISTS idx_meal_plans_recipe_id
+ON meal_plans(recipe_id);
+
+-- Recipe list is sorted by newest first
+CREATE INDEX IF NOT EXISTS idx_recipes_user_created
+ON recipes(user_id, created_at DESC);
 
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()

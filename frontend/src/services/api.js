@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 // Create axios instance
 const api = axios.create({
@@ -44,5 +44,11 @@ api.interceptors.response.use(
     return Promise.reject(error);
   },
 );
+
+// Render's free plan puts the server to sleep when idle. Ping it as soon as the
+// app opens so it's awake by the time the user logs in or loads data.
+export const wakeBackend = () => {
+  fetch(API_URL, { method: "GET", cache: "no-store" }).catch(() => {});
+};
 
 export default api;

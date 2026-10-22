@@ -4,6 +4,7 @@ dotenv.config();
 
 import express from "express";
 import cors from "cors";
+import compression from "compression";
 
 // Import routes
 import authRoutes from "./routes/auth.js";
@@ -48,6 +49,7 @@ app.use(
 );
 
 // Middleware
+app.use(compression()); // gzip JSON responses
 app.use(express.json({ limit: "100kb" }));
 app.use(express.urlencoded({ extended: true }));
 
