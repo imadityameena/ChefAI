@@ -1,9 +1,34 @@
 import Recipe from "../models/Recipe.js";
 import PantryItem from "../models/PantryItem.js";
+import UserPreference from "../models/UserPreference.js";
 import {
   generateRecipe as generateRecipeAI,
   generatePantrySuggestions as generatePantrySuggestionsAI,
 } from "../utils/gemini.js";
+
+/**
+ * Find recipe ingredients that look like they match one of the user's
+ * allergies. Simple text matching, so it can flag harmless items too
+ * (e.g. "nut" in "nutmeg"); it's a safety warning, not a filter.
+ */
+export const findAllergenMatches = (recipe, allergies) => {
+  const stems = allergies
+    .map((a) => a.trim().toLowerCase())
+    .filter((a) => a.length >= 3)
+    // "peanuts" -> "peanut", "tomatoes" -> "tomato"
+    .map((a) => ({ allergy: a, stem: a.replace(/(es|s)$/, "") }));
+
+  const matches = [];
+  for (const ing of recipe.ingredients || []) {
+    const name = String(ing?.name || "").toLowerCase();
+    for (const { allergy, stem } of stems) {
+      if (stem && name.includes(stem)) {
+        matches.push({ ingredient: ing.name, allergy });
+      }
+    }
+  }
+  return matches;
+};
 
 /**
  * Generate recipe using AI
@@ -25,6 +50,14 @@ export const generateRecipe = async (req, res, next) => {
         message: "ingredients and dietaryRestrictions must be lists",
       });
     }
+
+    // Always use the allergies and units saved in Settings, so they can't be
+    // skipped by the client
+    const preferences = await UserPreference.findByUserId(req.user.id);
+    const allergies = (preferences?.allergies || [])
+      .filter((a) => typeof a === "string" && a.trim())
+      .slice(0, 30);
+    const measurementUnit = preferences?.measurement_unit || "metric";
 
     let finalIngredients = ingredients
       .filter((item) => typeof item === "string" && item.trim())
@@ -58,12 +91,18 @@ export const generateRecipe = async (req, res, next) => {
       cuisineType: String(cuisineType).slice(0, 50),
       servings: Math.min(Math.max(parseInt(servings) || 4, 1), 50),
       cookingTime,
+      allergies,
+      measurementUnit,
     });
 
     res.json({
       success: true,
       message: "Recipe generated successfully",
-      data: { recipe },
+      data: {
+        recipe,
+        allergies,
+        allergenWarnings: findAllergenMatches(recipe, allergies),
+      },
     });
   } catch (error) {
     next(error);

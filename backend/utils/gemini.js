@@ -45,12 +45,24 @@ export const generateRecipe = async ({
   dietaryRestrictions = [],
   cuisineType = 'any',
   servings = 4,
-  cookingTime = 'medium'
+  cookingTime = 'medium',
+  allergies = [],
+  measurementUnit = 'metric'
 }) => {
 
   const dietaryInfo = dietaryRestrictions.length > 0
     ? `Dietary restrictions: ${dietaryRestrictions.join(', ')}`
     : 'No dietary restrictions';
+
+  // Allergies are a hard rule: leave the allergen out even if it's in the
+  // available ingredients (pantry items get added automatically)
+  const allergyInfo = allergies.length > 0
+    ? `ALLERGIES (strict): the eater is allergic to ${allergies.join(', ')}. Do NOT use these, any ingredient that contains them, or anything derived from them, even if they appear in the available ingredients. If an ingredient might contain an allergen, leave it out or choose a safe substitute.`
+    : 'No allergies';
+
+  const unitInfo = measurementUnit === 'imperial'
+    ? 'Units: use US/imperial units (cups, tbsp, tsp, oz, lb, fl oz, °F).'
+    : 'Units: use metric units (g, kg, ml, l, tsp, tbsp, °C).';
 
   const timeGuide = {
     quick: 'under 30 minutes',
@@ -62,6 +74,8 @@ export const generateRecipe = async ({
 
 Ingredients available: ${ingredients.join(', ')}
 ${dietaryInfo}
+${allergyInfo}
+${unitInfo}
 Cuisine type: ${cuisineType}
 Servings: ${servings}
 Cooking time: ${timeGuide[cookingTime] || 'any'}

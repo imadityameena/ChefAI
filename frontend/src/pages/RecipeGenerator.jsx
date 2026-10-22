@@ -8,6 +8,7 @@ import {
   Leaf,
   Loader2,
   Plus,
+  ShieldAlert,
   Sparkles,
   Users,
   WandSparkles,
@@ -16,6 +17,7 @@ import {
 import Navbar from "../components/Navbar";
 import BrandLogo from "../components/BrandLogo";
 import toast from "react-hot-toast";
+import { Link } from "react-router-dom";
 import api from "../services/api";
 
 const CUISINES = [
@@ -58,6 +60,9 @@ const RecipeGenerator = () => {
   const [cookingTime, setCookingTime] = useState("medium");
   const [generating, setGenerating] = useState(false);
   const [generatedRecipe, setGeneratedRecipe] = useState(null);
+  // Allergies come from Settings; the backend applies them to every recipe
+  const [allergies, setAllergies] = useState([]);
+  const [allergenWarnings, setAllergenWarnings] = useState([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -67,6 +72,8 @@ const RecipeGenerator = () => {
         const preferences = response.data.data.preferences;
 
         if (preferences) {
+          setAllergies(preferences.allergies || []);
+
           if (preferences.dietary_restrictions?.length > 0) {
             setDietaryRestrictions(preferences.dietary_restrictions);
           }
@@ -123,6 +130,7 @@ const RecipeGenerator = () => {
 
     setGenerating(true);
     setGeneratedRecipe(null);
+    setAllergenWarnings([]);
 
     try {
       const response = await api.post("/recipes/generate", {
@@ -134,7 +142,9 @@ const RecipeGenerator = () => {
         cookingTime,
       });
 
-      setGeneratedRecipe(response.data.data.recipe);
+      const { recipe, allergenWarnings: warnings = [] } = response.data.data;
+      setGeneratedRecipe(recipe);
+      setAllergenWarnings(warnings);
       toast.success("ChefAI cooked up a recipe!");
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to generate recipe");
@@ -358,6 +368,33 @@ const RecipeGenerator = () => {
                   </div>
                 </div>
 
+                <div className="rounded-2xl border border-gray-200 bg-white/70 p-4 text-sm">
+                  <div className="mb-1 flex items-center gap-2 font-bold text-slate-800">
+                    <ShieldAlert className="h-4 w-4 text-red-500" />
+                    Allergies
+                  </div>
+                  {allergies.length > 0 ? (
+                    <p className="text-slate-600">
+                      Always avoiding:{" "}
+                      <span className="font-semibold text-slate-800">
+                        {allergies.join(", ")}
+                      </span>
+                      .{" "}
+                      <Link to="/settings" className="font-semibold text-emerald-700 hover:underline">
+                        Edit
+                      </Link>
+                    </p>
+                  ) : (
+                    <p className="text-slate-600">
+                      None saved.{" "}
+                      <Link to="/settings" className="font-semibold text-emerald-700 hover:underline">
+                        Add allergies in Settings
+                      </Link>{" "}
+                      and ChefAI will keep them out of every recipe.
+                    </p>
+                  )}
+                </div>
+
                 <div className="rounded-2xl border border-gray-200 bg-white/70 p-4">
                   <div className="mb-3 flex items-center justify-between text-sm font-bold text-slate-800">
                     <span>Servings</span>
@@ -439,6 +476,7 @@ const RecipeGenerator = () => {
             ) : generatedRecipe ? (
               <RecipeResult
                 recipe={generatedRecipe}
+                allergenWarnings={allergenWarnings}
                 saving={saving}
                 onSave={handleSaveRecipe}
               />
@@ -524,7 +562,7 @@ const GeneratingState = () => (
   </div>
 );
 
-const RecipeResult = ({ recipe, saving, onSave }) => {
+const RecipeResult = ({ recipe, allergenWarnings = [], saving, onSave }) => {
   const prepTime = recipe.prepTime ?? recipe.prep_time ?? 0;
   const cookTime = recipe.cookTime ?? recipe.cook_time ?? 0;
   const servings = recipe.servings ?? 4;
@@ -535,6 +573,28 @@ const RecipeResult = ({ recipe, saving, onSave }) => {
 
   return (
     <div className="flex h-full flex-col">
+      {allergenWarnings.length > 0 && (
+        <div
+          role="alert"
+          className="mb-4 flex gap-3 rounded-[1.35rem] border border-red-200 bg-red-50 p-4 text-sm text-red-800"
+        >
+          <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0" />
+          <div>
+            <p className="font-bold">Check this recipe against your allergies</p>
+            <ul className="mt-1 list-disc pl-5">
+              {allergenWarnings.map(({ ingredient, allergy }) => (
+                <li key={`${ingredient}-${allergy}`}>
+                  &ldquo;{ingredient}&rdquo; may contain {allergy}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-1 text-red-700">
+              ChefAI was told to avoid it, but always check labels yourself.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="mb-6 rounded-[1.35rem] bg-white/80 p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
