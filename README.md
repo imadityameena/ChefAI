@@ -51,7 +51,9 @@ Create `frontend/.env`:
 VITE_API_URL=http://localhost:5000/api
 ```
 
-Note: `frontend/src/services/api.js` falls back to `http://localhost:8000/api` when `VITE_API_URL` is not set. In local development, set `VITE_API_URL` to match your backend port.
+Note: if `VITE_API_URL` is not set, the frontend uses `http://localhost:5000/api`.
+
+`FRONTEND_URL` controls which sites may call the API (CORS). Use a comma-separated list for several URLs, without a trailing slash. `http://localhost:5173` is always allowed when `NODE_ENV` is not `production`.
 
 ## Local Setup
 

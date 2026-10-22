@@ -24,7 +24,7 @@ class User {
      */
     static async findByEmail(email) {
         const result = await db.query(
-            'SELECT * FROM users WHERE email = $1',
+            'SELECT * FROM users WHERE LOWER(email) = LOWER($1)',
             [email]
         );
 
@@ -39,6 +39,18 @@ class User {
             `SELECT id, email, name, created_at, updated_at
              FROM users
              WHERE id = $1`,
+            [id]
+        );
+
+        return result.rows[0];
+    }
+
+    /**
+     * Find user by ID, including the password hash (for password checks only)
+     */
+    static async findByIdWithPassword(id) {
+        const result = await db.query(
+            'SELECT * FROM users WHERE id = $1',
             [id]
         );
 

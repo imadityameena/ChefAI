@@ -1,5 +1,8 @@
 import User from '../models/User.js';
 import UserPreference from '../models/UserPreference.js';
+import { MIN_PASSWORD_LENGTH } from './authController.js';
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
  * Get user profile
@@ -41,7 +44,32 @@ export const updateProfile = async (
     next
 ) => {
     try {
-        const { name, email } = req.body;
+        const name =
+            typeof req.body.name === 'string'
+                ? req.body.name.trim() || undefined
+                : undefined;
+        const email =
+            typeof req.body.email === 'string'
+                ? req.body.email.trim() || undefined
+                : undefined;
+
+        if (email) {
+            if (!EMAIL_PATTERN.test(email)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Please provide a valid email address'
+                });
+            }
+
+            const existing = await User.findByEmail(email);
+
+            if (existing && existing.id !== req.user.id) {
+                return res.status(409).json({
+                    success: false,
+                    message: 'That email is already in use'
+                });
+            }
+        }
 
         const user = await User.update(
             req.user.id,
@@ -106,11 +134,29 @@ async (req, res, next) => {
             });
         }
 
-        // Verify current password
+        if (
+            typeof newPassword !== 'string' ||
+            newPassword.length < MIN_PASSWORD_LENGTH
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters`
+            });
+        }
+
+        // Verify current password (look up by ID: the email in the
+        // token may be out of date if the user changed it)
         const user =
-            await User.findByEmail(
-                req.user.email
+            await User.findByIdWithPassword(
+                req.user.id
             );
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
 
         const isValid =
             await User.verifyPassword(
@@ -119,7 +165,8 @@ async (req, res, next) => {
             );
 
         if (!isValid) {
-            return res.status(401).json({
+            // 400, not 401: the session is fine, only the input is wrong
+            return res.status(400).json({
                 success: false,
                 message:
                     'Current password is incorrect'

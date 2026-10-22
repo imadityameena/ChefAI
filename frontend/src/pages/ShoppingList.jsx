@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { ShoppingCart, Plus, X, Check, Trash2 } from "lucide-react";
+import { ShoppingCart, Plus, X, Check, Trash2, CalendarDays } from "lucide-react";
+import { format, addDays } from "date-fns";
 import Navbar from "../components/Navbar";
 import toast from "react-hot-toast";
 import api from "../services/api";
@@ -21,6 +22,7 @@ const ShoppingList = () => {
   const [groupedItems, setGroupedItems] = useState({});
   const [showAddModal, setShowAddModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     fetchShoppingList();
@@ -138,6 +140,56 @@ const ShoppingList = () => {
     }
   };
 
+  // Build the list from meals planned for today + the next 6 days,
+  // minus what's already in the pantry
+  const handleGenerateFromMealPlan = async () => {
+    if (
+      !confirm(
+        "Build the list from your meals for the next 7 days? Items previously added from the meal plan will be replaced.",
+      )
+    )
+      return;
+
+    setGenerating(true);
+
+    try {
+      const today = new Date();
+      const response = await api.post("/shopping-list/generate", {
+        startDate: format(today, "yyyy-MM-dd"),
+        endDate: format(addDays(today, 6), "yyyy-MM-dd"),
+      });
+
+      await fetchShoppingList();
+
+      const fromPlan = response.data.data.items.filter(
+        (item) => item.from_meal_plan,
+      ).length;
+
+      toast.success(
+        fromPlan > 0
+          ? `Added ${fromPlan} items from your meal plan`
+          : "Nothing to add: no planned meals, or your pantry already has everything",
+      );
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || "Failed to generate shopping list",
+      );
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const generateButton = (
+    <button
+      onClick={handleGenerateFromMealPlan}
+      disabled={generating}
+      className="inline-flex items-center gap-2 border border-emerald-500 text-emerald-700 hover:bg-emerald-50 px-4 py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50"
+    >
+      <CalendarDays className="w-5 h-5" />
+      {generating ? "Generating..." : "From Meal Plan"}
+    </button>
+  );
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -178,6 +230,8 @@ const ShoppingList = () => {
               <Plus className="w-5 h-5" />
               Add Item
             </button>
+
+            {generateButton}
 
             {checkedCount > 0 && (
               <>
@@ -238,6 +292,8 @@ const ShoppingList = () => {
               <Plus className="w-5 h-5" />
               Add First Item
             </button>
+
+            <div className="mt-3">{generateButton}</div>
           </div>
         )}
       </div>

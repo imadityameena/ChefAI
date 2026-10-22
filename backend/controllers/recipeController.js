@@ -19,7 +19,16 @@ export const generateRecipe = async (req, res, next) => {
       cookingTime = "medium",
     } = req.body;
 
-    let finalIngredients = [...ingredients];
+    if (!Array.isArray(ingredients) || !Array.isArray(dietaryRestrictions)) {
+      return res.status(400).json({
+        success: false,
+        message: "ingredients and dietaryRestrictions must be lists",
+      });
+    }
+
+    let finalIngredients = ingredients
+      .filter((item) => typeof item === "string" && item.trim())
+      .map((item) => item.trim().slice(0, 100));
 
     // Add pantry ingredients if requested
     if (usePantryIngredients) {
@@ -29,6 +38,9 @@ export const generateRecipe = async (req, res, next) => {
         ...new Set([...finalIngredients, ...pantryIngredientNames]),
       ];
     }
+
+    // Keep the prompt a sensible size
+    finalIngredients = finalIngredients.slice(0, 50);
 
     if (finalIngredients.length === 0) {
       return res.status(400).json({
@@ -40,9 +52,11 @@ export const generateRecipe = async (req, res, next) => {
     // Generate recipe using Gemini
     const recipe = await generateRecipeAI({
       ingredients: finalIngredients,
-      dietaryRestrictions,
-      cuisineType,
-      servings,
+      dietaryRestrictions: dietaryRestrictions
+        .filter((item) => typeof item === "string")
+        .slice(0, 20),
+      cuisineType: String(cuisineType).slice(0, 50),
+      servings: Math.min(Math.max(parseInt(servings) || 4, 1), 50),
       cookingTime,
     });
 

@@ -29,7 +29,7 @@ const CUISINES = [
 ];
 
 const Settings = () => {
-    const { user, logout } = useAuth();
+    const { logout, updateUser } = useAuth();
     const navigate = useNavigate();
 
     const [saving, setSaving] = useState(false);
@@ -49,6 +49,9 @@ const Settings = () => {
         default_servings: 4,
         measurement_unit: 'metric'
     });
+
+    // Allergies are edited as free text and turned into a list on save
+    const [allergiesText, setAllergiesText] = useState('');
 
     // Password state
     const [passwordData, setPasswordData] = useState({
@@ -76,6 +79,9 @@ const Settings = () => {
             });
 
             if (userPrefs) {
+                setAllergiesText(
+                    (userPrefs.allergies || []).join(', ')
+                );
                 setPreferences({
                     dietary_restrictions:
                         userPrefs.dietary_restrictions || [],
@@ -101,24 +107,21 @@ const Settings = () => {
         setSaving(true);
 
         try {
-            await api.put('/users/profile', profile);
+            const response = await api.put('/users/profile', profile);
 
             toast.success(
                 'Profile updated successfully'
             );
 
-            // Update local storage
-            const updatedUser = {
-                ...user,
-                ...profile
-            };
-
-            localStorage.setItem(
-                'user',
-                JSON.stringify(updatedUser)
-            );
+            // Update the navbar and saved session with the new details
+            const { user: updatedUser } = response.data.data;
+            updateUser({
+                name: updatedUser.name,
+                email: updatedUser.email
+            });
         } catch (error) {
             toast.error(
+                error.response?.data?.message ||
                 'Failed to update profile'
             );
         } finally {
@@ -133,7 +136,13 @@ const Settings = () => {
         try {
             await api.put(
                 '/users/preferences',
-                preferences
+                {
+                    ...preferences,
+                    allergies: allergiesText
+                        .split(',')
+                        .map((a) => a.trim())
+                        .filter(Boolean)
+                }
             );
 
             toast.success(
@@ -279,19 +288,24 @@ const Settings = () => {
         );
     }
 
+    const inputClass =
+        'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none';
+
+    const chipClass = (active) =>
+        `px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+            active
+                ? 'bg-emerald-500 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+        }`;
+
     return (
         <div className="min-h-screen bg-gray-50">
             <Navbar />
 
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900">
-                        Settings
-                    </h1>
-                    <p className="text-gray-600 mt-1">
-                        Manage your account and
-                        preferences
-                    </p>
+                    <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
+                    <p className="text-gray-600 mt-1">Manage your account and preferences</p>
                 </div>
 
                 <div className="space-y-6">
@@ -301,48 +315,231 @@ const Settings = () => {
                             <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
                                 <User className="w-5 h-5 text-emerald-600" />
                             </div>
-
-                            <h2 className="text-xl font-semibold text-gray-900">
-                                Profile Information
-                            </h2>
+                            <h2 className="text-xl font-semibold text-gray-900">Profile Information</h2>
                         </div>
 
-                        <form
-                            onSubmit={
-                                handleProfileUpdate
-                            }
-                            className="space-y-4"
-                        >
-                            <input
-                                type="text"
-                                value={profile.name}
-                                onChange={(e) =>
-                                    setProfile({
-                                        ...profile,
-                                        name:
-                                            e.target
-                                                .value
-                                    })
-                                }
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                            />
+                        <form onSubmit={handleProfileUpdate} className="space-y-4">
+                            <div>
+                                <label htmlFor="settings-name" className="block text-sm font-medium text-gray-700 mb-2">Name</label>
+                                <input
+                                    id="settings-name"
+                                    type="text"
+                                    value={profile.name}
+                                    onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                                    className={inputClass}
+                                    required
+                                />
+                            </div>
 
-                            <input
-                                type="email"
-                                value={profile.email}
-                                disabled
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                            />
+                            <div>
+                                <label htmlFor="settings-email" className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                                <input
+                                    id="settings-email"
+                                    type="email"
+                                    value={profile.email}
+                                    onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                                    className={inputClass}
+                                    required
+                                />
+                            </div>
 
                             <button
                                 type="submit"
                                 disabled={saving}
+                                className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
                             >
-                                {saving
-                                    ? 'Saving...'
-                                    : 'Save Profile'}
+                                <Save className="w-4 h-4" />
+                                {saving ? 'Saving...' : 'Save Profile'}
                             </button>
                         </form>
+                    </div>
+
+                    {/* Change Password */}
+                    <div className="bg-white rounded-xl border border-gray-200 p-6">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <Lock className="w-5 h-5 text-blue-600" />
+                            </div>
+                            <h2 className="text-xl font-semibold text-gray-900">Change Password</h2>
+                        </div>
+
+                        <form onSubmit={handlePasswordChange} className="space-y-4">
+                            <div>
+                                <label htmlFor="current-password" className="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
+                                <input
+                                    id="current-password"
+                                    type="password"
+                                    autoComplete="current-password"
+                                    value={passwordData.currentPassword}
+                                    onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                                    className={inputClass}
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label htmlFor="new-password" className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+                                <input
+                                    id="new-password"
+                                    type="password"
+                                    autoComplete="new-password"
+                                    value={passwordData.newPassword}
+                                    onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                                    className={inputClass}
+                                    required
+                                    minLength={6}
+                                />
+                            </div>
+
+                            <div>
+                                <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label>
+                                <input
+                                    id="confirm-password"
+                                    type="password"
+                                    autoComplete="new-password"
+                                    value={passwordData.confirmPassword}
+                                    onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                                    className={inputClass}
+                                    required
+                                    minLength={6}
+                                />
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={saving}
+                                className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+                            >
+                                <Lock className="w-4 h-4" />
+                                {saving ? 'Changing...' : 'Change Password'}
+                            </button>
+                        </form>
+                    </div>
+
+                    {/* Preferences */}
+                    <div className="bg-white rounded-xl border border-gray-200 p-6">
+                        <h2 className="text-xl font-semibold text-gray-900 mb-6">Dietary Preferences</h2>
+
+                        <form onSubmit={handlePreferencesUpdate} className="space-y-6">
+                            <div>
+                                <p className="block text-sm font-medium text-gray-700 mb-3">Dietary Restrictions</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {DIETARY_OPTIONS.map((option) => (
+                                        <button
+                                            key={option}
+                                            type="button"
+                                            onClick={() => toggleDietary(option)}
+                                            aria-pressed={preferences.dietary_restrictions.includes(option)}
+                                            className={chipClass(preferences.dietary_restrictions.includes(option))}
+                                        >
+                                            {option}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label htmlFor="settings-allergies" className="block text-sm font-medium text-gray-700 mb-2">Allergies (comma-separated)</label>
+                                <input
+                                    id="settings-allergies"
+                                    type="text"
+                                    value={allergiesText}
+                                    onChange={(e) => setAllergiesText(e.target.value)}
+                                    placeholder="e.g., peanuts, shellfish, soy"
+                                    className={inputClass}
+                                />
+                            </div>
+
+                            <div>
+                                <p className="block text-sm font-medium text-gray-700 mb-3">Preferred Cuisines</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {CUISINES.map((cuisine) => (
+                                        <button
+                                            key={cuisine}
+                                            type="button"
+                                            onClick={() => toggleCuisine(cuisine)}
+                                            aria-pressed={preferences.preferred_cuisines.includes(cuisine)}
+                                            className={chipClass(preferences.preferred_cuisines.includes(cuisine))}
+                                        >
+                                            {cuisine}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label htmlFor="settings-servings" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Default Servings: {preferences.default_servings}
+                                </label>
+                                <input
+                                    id="settings-servings"
+                                    type="range"
+                                    min="1"
+                                    max="12"
+                                    value={preferences.default_servings}
+                                    onChange={(e) => setPreferences({ ...preferences, default_servings: parseInt(e.target.value) })}
+                                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                                />
+                                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                                    <span>1</span>
+                                    <span>12</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <p className="block text-sm font-medium text-gray-700 mb-2">Measurement Unit</p>
+                                <div className="flex gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setPreferences({ ...preferences, measurement_unit: 'metric' })}
+                                        aria-pressed={preferences.measurement_unit === 'metric'}
+                                        className={`flex-1 ${chipClass(preferences.measurement_unit === 'metric')}`}
+                                    >
+                                        Metric (kg, L)
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setPreferences({ ...preferences, measurement_unit: 'imperial' })}
+                                        aria-pressed={preferences.measurement_unit === 'imperial'}
+                                        className={`flex-1 ${chipClass(preferences.measurement_unit === 'imperial')}`}
+                                    >
+                                        Imperial (lb, gal)
+                                    </button>
+                                </div>
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={saving}
+                                className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+                            >
+                                <Save className="w-4 h-4" />
+                                {saving ? 'Saving...' : 'Save Preferences'}
+                            </button>
+                        </form>
+                    </div>
+
+                    {/* Danger Zone */}
+                    <div className="bg-white rounded-xl border border-red-200 p-6">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                                <Trash2 className="w-5 h-5 text-red-600" />
+                            </div>
+                            <h2 className="text-xl font-semibold text-gray-900">Danger Zone</h2>
+                        </div>
+
+                        <p className="text-gray-600 mb-4">
+                            Once you delete your account, there is no going back. All your recipes, meal plans, and data will be permanently deleted.
+                        </p>
+
+                        <button
+                            type="button"
+                            onClick={handleDeleteAccount}
+                            className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            Delete Account
+                        </button>
                     </div>
                 </div>
             </div>

@@ -63,10 +63,14 @@ CREATE TABLE IF NOT EXISTS recipe_ingredients (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     recipe_id UUID REFERENCES recipes(id) ON DELETE CASCADE,
     ingredient_name VARCHAR(255) NOT NULL,
-    quantity DECIMAL(10, 2) NOT NULL,
-    unit VARCHAR(50) NOT NULL,
+    quantity DECIMAL(10, 2),
+    unit VARCHAR(50) NOT NULL DEFAULT '',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Quantity is optional (e.g. "salt, to taste"). Also applies to existing databases.
+ALTER TABLE recipe_ingredients ALTER COLUMN quantity DROP NOT NULL;
+ALTER TABLE recipe_ingredients ALTER COLUMN unit SET DEFAULT '';
 
 -- Recipe Nutrition Table
 CREATE TABLE IF NOT EXISTS recipe_nutrition (
@@ -140,32 +144,38 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Create triggers for updated_at
+-- Create triggers for updated_at (dropped first so the migration can run on every deploy)
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
 CREATE TRIGGER update_users_updated_at
 BEFORE UPDATE ON users
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_user_preferences_updated_at ON user_preferences;
 CREATE TRIGGER update_user_preferences_updated_at
 BEFORE UPDATE ON user_preferences
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_pantry_items_updated_at ON pantry_items;
 CREATE TRIGGER update_pantry_items_updated_at
 BEFORE UPDATE ON pantry_items
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_recipes_updated_at ON recipes;
 CREATE TRIGGER update_recipes_updated_at
 BEFORE UPDATE ON recipes
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_meal_plans_updated_at ON meal_plans;
 CREATE TRIGGER update_meal_plans_updated_at
 BEFORE UPDATE ON meal_plans
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_shopping_list_items_updated_at ON shopping_list_items;
 CREATE TRIGGER update_shopping_list_items_updated_at
 BEFORE UPDATE ON shopping_list_items
 FOR EACH ROW

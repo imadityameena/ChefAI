@@ -23,7 +23,13 @@ export const AuthProvider = ({ children }) => {
         const savedUser = localStorage.getItem('user');
 
         if (token && savedUser) {
-            setUser(JSON.parse(savedUser));
+            try {
+                setUser(JSON.parse(savedUser));
+            } catch {
+                // Corrupted value in storage: treat as logged out
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+            }
         }
 
         setLoading(false);
@@ -94,12 +100,22 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
     };
 
+    // Update the logged-in user's details (e.g. after editing the profile)
+    const updateUser = (updates) => {
+        setUser((current) => {
+            const updated = { ...current, ...updates };
+            localStorage.setItem('user', JSON.stringify(updated));
+            return updated;
+        });
+    };
+
     const value = {
         user,
         loading,
         login,
         register,
         logout,
+        updateUser,
         isAuthenticated: !!user
     };
 

@@ -11,6 +11,35 @@ if (!process.env.GEMINI_API_KEY) {
   console.error('WARNING: GEMINI_API_KEY is not set. AI features will not work.');
 }
 
+const MODEL = "gemini-2.5-flash";
+
+// Error the API can show to the user as-is (502 = upstream AI failed)
+const aiError = (message) => {
+  const error = new Error(message);
+  error.statusCode = 502;
+  error.expose = true;
+  return error;
+};
+
+/**
+ * Ask Gemini for JSON and parse it.
+ * responseMimeType makes Gemini return raw JSON; the fence stripping is a fallback.
+ */
+const generateJSON = async (prompt) => {
+  const response = await ai.models.generateContent({
+    model: MODEL,
+    contents: prompt,
+    config: { responseMimeType: "application/json" },
+  });
+
+  const text = (response.text || "")
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/, "");
+
+  return JSON.parse(text);
+};
+
 export const generateRecipe = async ({
   ingredients,
   dietaryRestrictions = [],
@@ -50,7 +79,7 @@ Please provide a complete recipe in the following JSON format (return ONLY valid
   "ingredients": [
     {
       "name": "ingredient name",
-      "quantity": number,
+      "quantity": number (use null if it has no amount, e.g. "to taste"),
       "unit": "unit of measurement"
     }
   ],
@@ -72,36 +101,16 @@ Please provide a complete recipe in the following JSON format (return ONLY valid
 Make sure the recipe is creative, delicious, and uses the provided ingredients effectively.`;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-    });
+    const recipe = await generateJSON(prompt);
 
-    const generatedText = response.text.trim();
-
-    // Remove markdown code blocks if present
-    let jsonText = generatedText;
-
-    if (jsonText.startsWith('```json')) {
-      jsonText = jsonText
-        .replace(/```json\n?/g, '')
-        .replace(/```\n?$/g, '');
-    } else if (jsonText.startsWith('```')) {
-      jsonText = jsonText.replace(/```\n?/g, '');
+    if (!recipe || typeof recipe !== 'object' || !recipe.name) {
+      throw new Error('AI response is missing a recipe name');
     }
 
-    const recipe = JSON.parse(jsonText);
     return recipe;
-
   } catch (error) {
-    // Log detailed error info for debugging (including any response body)
-    if (error && error.response) {
-      console.error('Gemini API error - response:', error.response);
-    } else {
-      console.error('Gemini API error:', error);
-    }
-    // Surface a clearer message while keeping HTTP status handling to the caller
-    throw new Error(`Failed to generate recipe: ${error.message || 'unknown error'}`);
+    console.error('Gemini API error (generateRecipe):', error);
+    throw aiError('Failed to generate recipe, please try again');
   }
 };
 
@@ -125,28 +134,11 @@ Suggest 3 creative recipe ideas that use these ingredients. Return ONLY a JSON a
 Each suggestion should be a brief, appetizing description (1-2 sentences).`;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-    });
-
-    let generatedText = response.text.trim();
-
-    // Remove markdown if present
-    if (generatedText.startsWith('```json')) {
-      generatedText = generatedText
-        .replace(/```json\n?/g, '')
-        .replace(/```\n?$/g, '');
-    } else if (generatedText.startsWith('```')) {
-      generatedText = generatedText.replace(/```\n?/g, '');
-    }
-
-    const suggestions = JSON.parse(generatedText);
-    return suggestions;
-
+    const suggestions = await generateJSON(prompt);
+    return Array.isArray(suggestions) ? suggestions : [];
   } catch (error) {
-    console.error("Gemini API error:", error);
-    throw new Error("Failed to generate suggestions");
+    console.error("Gemini API error (generatePantrySuggestions):", error);
+    throw aiError("Failed to generate suggestions, please try again");
   }
 };
 
@@ -160,26 +152,10 @@ Provide 3-5 helpful cooking tips to make this recipe better. Return ONLY a JSON 
 ["Tip 1", "Tip 2", "Tip 3"]`;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-    });
-
-    let generatedText = response.text.trim();
-
-    if (generatedText.startsWith('```json')) {
-      generatedText = generatedText
-        .replace(/```json\n?/g, '')
-        .replace(/```\n?$/g, '');
-    } else if (generatedText.startsWith('```')) {
-      generatedText = generatedText.replace(/```\n?/g, '');
-    }
-
-    const tips = JSON.parse(generatedText);
-    return tips;
-
+    const tips = await generateJSON(prompt);
+    return Array.isArray(tips) ? tips : ['Cook with love and patience!'];
   } catch (error) {
-    console.error('Gemini API error:', error);
+    console.error('Gemini API error (generateCookingTips):', error);
     return ['Cook with love and patience!'];
   }
 };

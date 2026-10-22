@@ -2,6 +2,9 @@ import User from '../models/User.js';
 import UserPreference from '../models/UserPreference.js';
 import jwt from 'jsonwebtoken';
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export const MIN_PASSWORD_LENGTH = 6;
+
 /**
  * Generate JWT token
  */
@@ -21,7 +24,9 @@ const generateToken = (user) => {
  */
 export const register = async (req, res, next) => {
     try {
-        const { email, password, name } = req.body;
+        const email = String(req.body.email || '').trim();
+        const name = String(req.body.name || '').trim();
+        const { password } = req.body;
 
         // Validation
         if (!email || !password || !name) {
@@ -29,6 +34,20 @@ export const register = async (req, res, next) => {
                 success: false,
                 message:
                     'Please provide email, password, and name'
+            });
+        }
+
+        if (!EMAIL_PATTERN.test(email)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide a valid email address'
+            });
+        }
+
+        if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
+            return res.status(400).json({
+                success: false,
+                message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters`
             });
         }
 
@@ -180,33 +199,12 @@ export const getCurrentUser = async (
 
 /**
  * Request password reset
- * (placeholder - would send email in production)
+ * Not implemented yet: there is no email service, so say so honestly
+ * instead of claiming an email was sent.
  */
-export const requestPasswordReset =
-async (req, res, next) => {
-    try {
-        const { email } = req.body;
-
-        if (!email) {
-            return res.status(400).json({
-                success: false,
-                message:
-                    'Please provide email'
-            });
-        }
-
-        const user =
-            await User.findByEmail(email);
-
-        // Don't reveal if user exists
-        // or not for security
-        res.json({
-            success: true,
-            message:
-                'If an account exists with this email, a password reset link has been sent'
-        });
-
-    } catch (error) {
-        next(error);
-    }
+export const requestPasswordReset = async (req, res) => {
+    res.status(501).json({
+        success: false,
+        message: 'Password reset is not available yet'
+    });
 };

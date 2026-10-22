@@ -1,5 +1,28 @@
 import db from '../config/db.js';
 
+const SORTABLE_COLUMNS = [
+  'created_at',
+  'updated_at',
+  'name',
+  'cook_time',
+  'prep_time',
+  'difficulty',
+  'cuisine_type'
+];
+
+// AI recipes sometimes give quantities like "to taste" — store those as null
+const toNumberOrNull = (value) => {
+  if (value === null || value === undefined || value === '') return null;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+};
+
+// For INT columns (times, servings, calories)
+const toIntOrNull = (value) => {
+  const num = toNumberOrNull(value);
+  return num === null ? null : Math.round(num);
+};
+
 class Recipe {
   /**
    * Create a new recipe with ingredients and nutrition
@@ -38,10 +61,10 @@ class Recipe {
           description,
           cuisine_type,
           difficulty,
-          prep_time,
-          cook_time,
-          servings,
-          JSON.stringify(instructions),
+          toIntOrNull(prep_time),
+          toIntOrNull(cook_time),
+          toIntOrNull(servings) || 4,
+          JSON.stringify(Array.isArray(instructions) ? instructions : []),
           dietary_tags,
           user_notes,
           image_url
@@ -50,9 +73,13 @@ class Recipe {
 
       const recipe = recipeResult.rows[0];
 
-      // Insert ingredients
-      if (ingredients.length > 0) {
-        const ingredientValues = ingredients
+      // Insert ingredients (skip entries without a name)
+      const validIngredients = Array.isArray(ingredients)
+        ? ingredients.filter((ing) => ing && ing.name)
+        : [];
+
+      if (validIngredients.length > 0) {
+        const ingredientValues = validIngredients
           .map(
             (ing, idx) =>
               `($1, $${idx * 3 + 2}, $${idx * 3 + 3}, $${idx * 3 + 4})`
@@ -61,11 +88,11 @@ class Recipe {
 
         const ingredientParams = [recipe.id];
 
-        ingredients.forEach((ing) => {
+        validIngredients.forEach((ing) => {
           ingredientParams.push(
-            ing.name,
-            ing.quantity,
-            ing.unit
+            String(ing.name),
+            toNumberOrNull(ing.quantity),
+            ing.unit ? String(ing.unit) : ''
           );
         });
 
@@ -85,11 +112,11 @@ class Recipe {
           VALUES ($1, $2, $3, $4, $5, $6)`,
           [
             recipe.id,
-            nutrition.calories,
-            nutrition.protein,
-            nutrition.carbs,
-            nutrition.fats,
-            nutrition.fiber
+            toIntOrNull(nutrition.calories),
+            toNumberOrNull(nutrition.protein),
+            toNumberOrNull(nutrition.carbs),
+            toNumberOrNull(nutrition.fats),
+            toNumberOrNull(nutrition.fiber)
           ]
         );
       }
@@ -184,24 +211,25 @@ class Recipe {
       params.push(filters.max_cook_time);
     }
 
-    // Sorting
-    const sortBy = filters.sort_by || 'created_at';
+    // Sorting: only allow known columns, never raw user input
+    const sortBy = SORTABLE_COLUMNS.includes(filters.sort_by)
+      ? filters.sort_by
+      : 'created_at';
     const sortOrder =
       filters.sort_order === 'asc' ? 'ASC' : 'DESC';
 
     query += ` ORDER BY r.${sortBy} ${sortOrder}`;
 
-    // Pagination
-    const limit = filters.limit || 20;
-    const offset = filters.offset || 0;
+    // Pagination is optional: without a limit, all recipes are returned
+    if (filters.limit) {
+      paramCount++;
+      query += ` LIMIT $${paramCount}`;
+      params.push(Math.min(Math.max(filters.limit, 1), 100));
 
-    paramCount++;
-    query += ` LIMIT $${paramCount}`;
-    params.push(limit);
-
-    paramCount++;
-    query += ` OFFSET $${paramCount}`;
-    params.push(offset);
+      paramCount++;
+      query += ` OFFSET $${paramCount}`;
+      params.push(Math.max(filters.offset || 0, 0));
+    }
 
     const result = await db.query(query, params);
 

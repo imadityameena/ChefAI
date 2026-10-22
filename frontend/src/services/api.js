@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 // Create axios instance
 const api = axios.create({
@@ -24,15 +24,22 @@ api.interceptors.request.use(
   },
 );
 
-// Response interceptor for error handling
+// Response interceptor: if the session has expired, log out and go to /login.
+// Login/signup failures also return 401, but those must reach the form so it can
+// show "Invalid credentials" — so they're skipped here.
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid
+    const url = error.config?.url || "";
+    const isAuthRequest = url.startsWith("/auth/login") || url.startsWith("/auth/signup");
+
+    if (error.response?.status === 401 && !isAuthRequest) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      window.location.href = "/login";
+
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
     }
     return Promise.reject(error);
   },

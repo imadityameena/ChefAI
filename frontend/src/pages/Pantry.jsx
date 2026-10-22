@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, X, Calendar, AlertCircle } from "lucide-react";
+import { Plus, Search, X, Calendar, AlertCircle, Pencil } from "lucide-react";
 import Navbar from "../components/Navbar";
 import toast from "react-hot-toast";
 import { format } from "date-fns";
@@ -19,6 +19,7 @@ const Pantry = () => {
   const [items, setItems] = useState([]);
   const [filteredItems, setFilteredItems] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [expiringItems, setExpiringItems] = useState([]);
@@ -182,6 +183,7 @@ const Pantry = () => {
                 key={item.id}
                 item={item}
                 onDelete={handleDelete}
+                onEdit={setEditingItem}
                 isExpiring={expiringItems.some((exp) => exp.id === item.id)}
               />
             ))}
@@ -193,9 +195,13 @@ const Pantry = () => {
         )}
       </div>
 
-      {showAddModal && (
+      {(showAddModal || editingItem) && (
         <AddItemModal
-          onClose={() => setShowAddModal(false)}
+          item={editingItem}
+          onClose={() => {
+            setShowAddModal(false);
+            setEditingItem(null);
+          }}
           onSuccess={() => {
             fetchPantryItems();
             fetchExpiringItems();
@@ -219,7 +225,7 @@ const CategoryButton = ({ label, active, onClick }) => (
   </button>
 );
 
-const PantryItemCard = ({ item, onDelete, isExpiring }) => {
+const PantryItemCard = ({ item, onDelete, onEdit, isExpiring }) => {
   const isExpired = item.expiry_date && new Date(item.expiry_date) < new Date();
 
   return (
@@ -235,12 +241,22 @@ const PantryItemCard = ({ item, onDelete, isExpiring }) => {
           <p className="text-sm text-gray-500 capitalize">{item.category}</p>
         </div>
 
-        <button
-          onClick={() => onDelete(item.id)}
-          className="text-gray-400 hover:text-red-500 transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onEdit(item)}
+            aria-label={`Edit ${item.name}`}
+            className="text-gray-400 hover:text-emerald-600 transition-colors"
+          >
+            <Pencil className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => onDelete(item.id)}
+            aria-label={`Delete ${item.name}`}
+            className="text-gray-400 hover:text-red-500 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -281,15 +297,31 @@ const PantryItemCard = ({ item, onDelete, isExpiring }) => {
   );
 };
 
-const AddItemModal = ({ onClose, onSuccess }) => {
-  const [formData, setFormData] = useState({
-    name: "",
-    quantity: "",
-    unit: "pieces",
-    category: "Other",
-    expiry_date: "",
-    is_running_low: false,
-  });
+// Used for both adding a new item and editing an existing one (when `item` is passed)
+const AddItemModal = ({ item, onClose, onSuccess }) => {
+  const isEditing = Boolean(item);
+
+  const [formData, setFormData] = useState(
+    isEditing
+      ? {
+          name: item.name,
+          quantity: String(Number(item.quantity)),
+          unit: item.unit,
+          category: item.category,
+          expiry_date: item.expiry_date
+            ? format(new Date(item.expiry_date), "yyyy-MM-dd")
+            : "",
+          is_running_low: Boolean(item.is_running_low),
+        }
+      : {
+          name: "",
+          quantity: "",
+          unit: "pieces",
+          category: "Other",
+          expiry_date: "",
+          is_running_low: false,
+        },
+  );
 
   const [loading, setLoading] = useState(false);
 
@@ -298,18 +330,27 @@ const AddItemModal = ({ onClose, onSuccess }) => {
     setLoading(true);
 
     try {
-      await api.post("/pantry", {
+      const payload = {
         ...formData,
         quantity: parseFloat(formData.quantity),
         expiry_date: formData.expiry_date || null,
-      });
+      };
 
-      toast.success("Item added to pantry");
+      if (isEditing) {
+        await api.put(`/pantry/${item.id}`, payload);
+        toast.success("Item updated");
+      } else {
+        await api.post("/pantry", payload);
+        toast.success("Item added to pantry");
+      }
 
       onSuccess();
       onClose();
     } catch (error) {
-      toast.error("Failed to add item");
+      toast.error(
+        error.response?.data?.message ||
+          (isEditing ? "Failed to update item" : "Failed to add item"),
+      );
     } finally {
       setLoading(false);
     }
@@ -320,7 +361,7 @@ const AddItemModal = ({ onClose, onSuccess }) => {
       <div className="bg-white rounded-xl max-w-md w-full p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">
-            Add Pantry Item
+            {isEditing ? "Edit Pantry Item" : "Add Pantry Item"}
           </h3>
           <button
             type="button"
@@ -443,7 +484,7 @@ const AddItemModal = ({ onClose, onSuccess }) => {
               disabled={loading}
               className="px-4 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-60"
             >
-              {loading ? "Adding..." : "Add Item"}
+              {loading ? "Saving..." : isEditing ? "Save Changes" : "Add Item"}
             </button>
           </div>
         </form>

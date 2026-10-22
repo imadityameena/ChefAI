@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Calendar as CalendarIcon, Plus, X, ChefHat } from "lucide-react";
 import Navbar from "../components/Navbar";
 import toast from "react-hot-toast";
-import { format, startOfWeek, addDays } from "date-fns";
+import { format, startOfWeek, addDays, parseISO } from "date-fns";
 import api from "../services/api";
 
 const MEAL_TYPES = ["breakfast", "lunch", "dinner"];
@@ -199,7 +199,7 @@ const MealPlanner = () => {
 
                           <button
                             onClick={() => handleRemoveMeal(meal.id)}
-                            className="absolute top-1 right-1 p-1 bg-white rounded hover:bg-red-50 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="absolute top-1 right-1 p-1 bg-white rounded hover:bg-red-50 text-gray-400 hover:text-red-600 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -267,7 +267,7 @@ const AddMealModal = ({ date, mealType, recipes, onClose, onSuccess }) => {
       onSuccess();
       onClose();
     } catch (error) {
-      toast.error("Failed to add meal");
+      toast.error(error.response?.data?.message || "Failed to add meal");
     } finally {
       setLoading(false);
     }
@@ -282,7 +282,7 @@ const AddMealModal = ({ date, mealType, recipes, onClose, onSuccess }) => {
               Add {mealType}
             </h2>
             <p className="text-sm text-gray-600 mt-1">
-              {format(new Date(date), "EEEE, MMMM d, yyyy")}
+              {format(parseISO(date), "EEEE, MMMM d, yyyy")}
             </p>
           </div>
 

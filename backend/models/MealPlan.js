@@ -8,17 +8,21 @@ class MealPlan {
     const { recipe_id, planned_date, meal_date, meal_type } = mealData;
     const date = planned_date || meal_date;
 
+    // Only allow planning recipes that belong to this user.
+    // INSERT ... SELECT inserts nothing if the recipe isn't theirs.
     const result = await db.query(
       `INSERT INTO meal_plans 
       (user_id, recipe_id, meal_date, meal_type)
-      VALUES ($1, $2, $3::date, $4)
+      SELECT $1, r.id, $3::date, $4
+      FROM recipes r
+      WHERE r.id = $2 AND r.user_id = $1
       ON CONFLICT (user_id, meal_date, meal_type)
-      DO UPDATE SET recipe_id = $2
+      DO UPDATE SET recipe_id = EXCLUDED.recipe_id
       RETURNING *`,
       [userId, recipe_id, date, meal_type]
     );
 
-    return result.rows[0];
+    return result.rows[0] || null;
   }
 
   /**
@@ -59,13 +63,16 @@ class MealPlan {
    * Get weekly meal plan
    */
   static async getWeeklyPlan(userId, weekStartDate) {
-    const endDate = new Date(weekStartDate);
-    endDate.setDate(endDate.getDate() + 6);
+    // Let Postgres do the date math to avoid timezone shifts in JS
+    const result = await db.query(
+      `SELECT ($1::date + 6)::text AS end_date`,
+      [weekStartDate]
+    );
 
     return await this.findByDateRange(
       userId,
       weekStartDate,
-      endDate
+      result.rows[0].end_date
     );
   }
 

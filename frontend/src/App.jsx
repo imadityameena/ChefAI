@@ -40,7 +40,6 @@ function App() {
             }
           />
 
-          {/* Placeholder routes - to be implemented */}
           <Route
             path="/pantry"
             element={
@@ -133,17 +132,5 @@ function App() {
     </AuthProvider>
   );
 }
-
-// Temporary Coming Soon component
-const ComingSoon = ({ page }) => {
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">{page}</h1>
-        <p className="text-gray-600">Coming soon...</p>
-      </div>
-    </div>
-  );
-};
 
 export default App;

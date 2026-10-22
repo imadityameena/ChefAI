@@ -5,7 +5,23 @@ import MealPlan from '../models/MealPlan.js';
  */
 export const addToMealPlan = async (req, res, next) => {
   try {
+    const { recipe_id, planned_date, meal_date, meal_type } = req.body;
+
+    if (!recipe_id || !(planned_date || meal_date) || !meal_type) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide recipe_id, planned_date and meal_type'
+      });
+    }
+
     const mealPlan = await MealPlan.create(req.user.id, req.body);
+
+    if (!mealPlan) {
+      return res.status(404).json({
+        success: false,
+        message: 'Recipe not found'
+      });
+    }
 
     res.status(201).json({
       success: true,

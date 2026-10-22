@@ -1,5 +1,4 @@
 import dotenv from 'dotenv';
-import { text } from 'express';
 
 dotenv.config();
 

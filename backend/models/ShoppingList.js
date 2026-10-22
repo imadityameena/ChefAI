@@ -21,8 +21,10 @@ class ShoppingList {
             const result = await client.query(
                 `SELECT ri.ingredient_name, ri.unit, SUM(ri.quantity) as total_quantity
                 FROM meal_plans mp
+                JOIN recipes r ON r.id = mp.recipe_id AND r.user_id = mp.user_id
                 JOIN recipe_ingredients ri ON mp.recipe_id = ri.recipe_id
                 WHERE mp.user_id = $1
+                AND ri.quantity IS NOT NULL
                 AND mp.meal_date >= $2
                 AND mp.meal_date <= $3
                 GROUP BY ri.ingredient_name, ri.unit`,
@@ -40,13 +42,17 @@ class ShoppingList {
             const pantryMap = new Map();
 
             pantryResult.rows.forEach(item => {
-                const key = `${item.name.toLowerCase()}_${item.unit}`;
-                pantryMap.set(key, item.quantity);
+                // Add up duplicates (e.g. two separate "rice, kg" entries)
+                const key = `${item.name.trim().toLowerCase()}_${item.unit}`;
+                pantryMap.set(
+                    key,
+                    (pantryMap.get(key) || 0) + parseFloat(item.quantity)
+                );
             });
 
             // Insert shopping list items (subtract pantry quantities)
             for (const ing of ingredients) {
-                const key = `${ing.ingredient_name.toLowerCase()}_${ing.unit}`;
+                const key = `${ing.ingredient_name.trim().toLowerCase()}_${ing.unit}`;
                 const pantryQty = pantryMap.get(key) || 0;
 
                 const neededQty = Math.max(

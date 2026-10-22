@@ -83,10 +83,10 @@ class PantryItem {
       `SELECT * FROM pantry_items
       WHERE user_id = $1
       AND expiry_date IS NOT NULL
-      AND expiry_date <= CURRENT_DATE + INTERVAL '${days} days'
+      AND expiry_date <= CURRENT_DATE + $2::int
       AND expiry_date >= CURRENT_DATE
       ORDER BY expiry_date ASC`,
-      [userId]
+      [userId, days]
     );
 
     return result.rows;
@@ -126,7 +126,8 @@ class PantryItem {
       quantity = COALESCE($2, quantity),
       unit = COALESCE($3, unit),
       category = COALESCE($4, category),
-      expiry_date = COALESCE($5, expiry_date),
+      -- expiry_date can be cleared by sending null explicitly
+      expiry_date = CASE WHEN $9::boolean THEN $5::date ELSE expiry_date END,
       is_running_low = COALESCE($6, is_running_low)
       WHERE id = $7
       AND user_id = $8
@@ -136,10 +137,11 @@ class PantryItem {
         quantity,
         unit,
         category,
-        expiry_date,
+        expiry_date || null,
         is_running_low,
         id,
-        userId
+        userId,
+        Object.prototype.hasOwnProperty.call(updates, 'expiry_date')
       ]
     );
 

@@ -165,7 +165,7 @@ const RecipeGenerator = () => {
 
       toast.success("Recipe saved to your collection!");
     } catch (error) {
-      toast.error("Failed to save recipe");
+      toast.error(error.response?.data?.message || "Failed to save recipe");
     } finally {
       setSaving(false);
     }
