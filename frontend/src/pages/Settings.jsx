@@ -1,550 +1,278 @@
-import { useState, useEffect } from 'react';
-import { User, Lock, Trash2, Save } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import { useAuth } from '../context/AuthContext';
-import toast from 'react-hot-toast';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../components/ConfirmDialog';
+import { CUISINES, DIETARY_OPTIONS } from '../lib/constants';
+import { errorMessage } from '../lib/format';
+import { Button, Card, Chip, Field, Input, PageHeader, PageLoader, Segmented, Stepper } from '../components/ui';
 
-const DIETARY_OPTIONS = [
-    'Vegetarian',
-    'Vegan',
-    'Gluten-Free',
-    'Dairy-Free',
-    'Keto',
-    'Paleo'
-];
-
-const CUISINES = [
-    'Any',
-    'Italian',
-    'Mexican',
-    'Indian',
-    'Chinese',
-    'Japanese',
-    'Thai',
-    'French',
-    'Mediterranean',
-    'American'
-];
+// One settings block: title + description on the left, form on the right
+const Section = ({ title, description, children, danger }) => (
+  <section className="grid gap-4 border-t border-line py-8 first:border-t-0 first:pt-0 md:grid-cols-[240px_1fr] md:gap-10">
+    <div>
+      <h2 className={`text-[15px] font-semibold ${danger ? 'text-danger' : 'text-ink'}`}>{title}</h2>
+      {description && <p className="mt-1 text-[13px] leading-relaxed text-muted">{description}</p>}
+    </div>
+    <div className="min-w-0">{children}</div>
+  </section>
+);
 
 const Settings = () => {
-    const { logout, updateUser } = useAuth();
-    const navigate = useNavigate();
+  const { logout, updateUser } = useAuth();
+  const navigate = useNavigate();
+  const confirm = useConfirm();
 
-    const [saving, setSaving] = useState(false);
-    const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(''); // which form is saving
 
-    // Profile state
-    const [profile, setProfile] = useState({
-        name: '',
-        email: ''
-    });
+  const [profile, setProfile] = useState({ name: '', email: '' });
+  const [prefs, setPrefs] = useState({
+    dietary_restrictions: [],
+    preferred_cuisines: [],
+    default_servings: 4,
+    measurement_unit: 'metric',
+  });
+  const [allergiesText, setAllergiesText] = useState('');
+  const [passwords, setPasswords] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
 
-    // Preferences state
-    const [preferences, setPreferences] = useState({
-        dietary_restrictions: [],
-        allergies: [],
-        preferred_cuisines: [],
-        default_servings: 4,
-        measurement_unit: 'metric'
-    });
-
-    // Allergies are edited as free text and turned into a list on save
-    const [allergiesText, setAllergiesText] = useState('');
-
-    // Password state
-    const [passwordData, setPasswordData] = useState({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-    });
-
-    useEffect(() => {
-        fetchUserData();
-    }, []);
-
-    const fetchUserData = async () => {
-        try {
-            const response = await api.get('/users/profile');
-
-            const {
-                user,
-                preferences: userPrefs
-            } = response.data.data;
-
-            setProfile({
-                name: user.name,
-                email: user.email
-            });
-
-            if (userPrefs) {
-                setAllergiesText(
-                    (userPrefs.allergies || []).join(', ')
-                );
-                setPreferences({
-                    dietary_restrictions:
-                        userPrefs.dietary_restrictions || [],
-                    allergies:
-                        userPrefs.allergies || [],
-                    preferred_cuisines:
-                        userPrefs.preferred_cuisines || [],
-                    default_servings:
-                        userPrefs.default_servings || 4,
-                    measurement_unit:
-                        userPrefs.measurement_unit || 'metric'
-                });
-            }
-        } catch (error) {
-            toast.error('Failed to load user data');
-        } finally {
-            setLoading(false);
+  useEffect(() => {
+    api
+      .get('/users/profile')
+      .then((res) => {
+        const { user, preferences } = res.data.data;
+        setProfile({ name: user.name, email: user.email });
+        if (preferences) {
+          setAllergiesText((preferences.allergies || []).join(', '));
+          setPrefs({
+            dietary_restrictions: preferences.dietary_restrictions || [],
+            preferred_cuisines: (preferences.preferred_cuisines || []).filter((c) => c !== 'Any'),
+            default_servings: preferences.default_servings || 4,
+            measurement_unit: preferences.measurement_unit || 'metric',
+          });
         }
-    };
+      })
+      .catch(() => toast.error('Could not load your settings'))
+      .finally(() => setLoading(false));
+  }, []);
 
-    const handleProfileUpdate = async (e) => {
-        e.preventDefault();
-        setSaving(true);
+  const toggleIn = (key, value) =>
+    setPrefs((p) => ({
+      ...p,
+      [key]: p[key].includes(value) ? p[key].filter((v) => v !== value) : [...p[key], value],
+    }));
 
-        try {
-            const response = await api.put('/users/profile', profile);
-
-            toast.success(
-                'Profile updated successfully'
-            );
-
-            // Update the navbar and saved session with the new details
-            const { user: updatedUser } = response.data.data;
-            updateUser({
-                name: updatedUser.name,
-                email: updatedUser.email
-            });
-        } catch (error) {
-            toast.error(
-                error.response?.data?.message ||
-                'Failed to update profile'
-            );
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const handlePreferencesUpdate = async (e) => {
-        e.preventDefault();
-        setSaving(true);
-
-        try {
-            await api.put(
-                '/users/preferences',
-                {
-                    ...preferences,
-                    allergies: allergiesText
-                        .split(',')
-                        .map((a) => a.trim())
-                        .filter(Boolean)
-                }
-            );
-
-            toast.success(
-                'Preferences updated successfully'
-            );
-        } catch (error) {
-            toast.error(
-                'Failed to update preferences'
-            );
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const handlePasswordChange = async (e) => {
-        e.preventDefault();
-
-        if (
-            passwordData.newPassword !==
-            passwordData.confirmPassword
-        ) {
-            toast.error(
-                'Passwords do not match'
-            );
-            return;
-        }
-
-        if (
-            passwordData.newPassword.length < 6
-        ) {
-            toast.error(
-                'Password must be at least 6 characters'
-            );
-            return;
-        }
-
-        setSaving(true);
-
-        try {
-            await api.put(
-                '/users/change-password',
-                {
-                    currentPassword:
-                        passwordData.currentPassword,
-                    newPassword:
-                        passwordData.newPassword
-                }
-            );
-
-            toast.success(
-                'Password changed successfully'
-            );
-
-            setPasswordData({
-                currentPassword: '',
-                newPassword: '',
-                confirmPassword: ''
-            });
-        } catch (error) {
-            toast.error(
-                error.response?.data?.message ||
-                'Failed to change password'
-            );
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const handleDeleteAccount = async () => {
-        if (
-            !confirm(
-                'Are you sure you want to delete your account? This action cannot be undone.'
-            )
-        ) {
-            return;
-        }
-
-        const confirmation = prompt(
-            'Type "DELETE" to confirm account deletion:'
-        );
-
-        if (confirmation !== 'DELETE') {
-            toast.error(
-                'Account deletion cancelled'
-            );
-            return;
-        }
-
-        try {
-            await api.delete('/users/account');
-
-            toast.success(
-                'Account deleted successfully'
-            );
-
-            logout();
-            navigate('/login');
-        } catch (error) {
-            toast.error(
-                'Failed to delete account'
-            );
-        }
-    };
-
-    const toggleDietary = (option) => {
-        setPreferences((prev) => ({
-            ...prev,
-            dietary_restrictions:
-                prev.dietary_restrictions.includes(option)
-                    ? prev.dietary_restrictions.filter(
-                        (d) => d !== option
-                    )
-                    : [
-                        ...prev.dietary_restrictions,
-                        option
-                    ]
-        }));
-    };
-
-    const toggleCuisine = (cuisine) => {
-        setPreferences((prev) => ({
-            ...prev,
-            preferred_cuisines:
-                prev.preferred_cuisines.includes(cuisine)
-                    ? prev.preferred_cuisines.filter(
-                        (c) => c !== cuisine
-                    )
-                    : [
-                        ...prev.preferred_cuisines,
-                        cuisine
-                    ]
-        }));
-    };
-
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-gray-50">
-                <Navbar />
-                <div className="flex items-center justify-center h-96">
-                    <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-                </div>
-            </div>
-        );
+  const saveProfile = async (e) => {
+    e.preventDefault();
+    setSaving('profile');
+    try {
+      const res = await api.put('/users/profile', profile);
+      const { user } = res.data.data;
+      updateUser({ name: user.name, email: user.email });
+      toast.success('Profile saved');
+    } catch (error) {
+      toast.error(errorMessage(error, 'Could not save your profile'));
+    } finally {
+      setSaving('');
     }
+  };
 
-    const inputClass =
-        'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none';
+  const savePrefs = async (e) => {
+    e.preventDefault();
+    setSaving('prefs');
+    try {
+      await api.put('/users/preferences', {
+        ...prefs,
+        allergies: allergiesText
+          .split(',')
+          .map((a) => a.trim())
+          .filter(Boolean),
+      });
+      toast.success('Preferences saved');
+    } catch (error) {
+      toast.error(errorMessage(error, 'Could not save your preferences'));
+    } finally {
+      setSaving('');
+    }
+  };
 
-    const chipClass = (active) =>
-        `px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-            active
-                ? 'bg-emerald-500 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-        }`;
+  const savePassword = async (e) => {
+    e.preventDefault();
+    if (passwords.newPassword !== passwords.confirmPassword) {
+      toast.error('New passwords don’t match');
+      return;
+    }
+    setSaving('password');
+    try {
+      await api.put('/users/change-password', {
+        currentPassword: passwords.currentPassword,
+        newPassword: passwords.newPassword,
+      });
+      setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      toast.success('Password changed');
+    } catch (error) {
+      toast.error(errorMessage(error, 'Could not change your password'));
+    } finally {
+      setSaving('');
+    }
+  };
 
-    return (
-        <div className="min-h-screen bg-gray-50">
-            <Navbar />
+  const deleteAccount = async () => {
+    const ok = await confirm({
+      title: 'Delete your account?',
+      description: 'Your recipes, pantry, meal plans and shopping list will be permanently deleted. This can’t be undone.',
+      confirmLabel: 'Delete account',
+      danger: true,
+      requireText: 'DELETE',
+    });
+    if (!ok) return;
+    try {
+      await api.delete('/users/account');
+      logout();
+      toast.success('Your account has been deleted');
+      navigate('/');
+    } catch {
+      toast.error('Could not delete your account');
+    }
+  };
 
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-                    <p className="text-gray-600 mt-1">Manage your account and preferences</p>
-                </div>
+  if (loading) return <PageLoader label="Loading settings" />;
 
-                <div className="space-y-6">
-                    {/* Profile */}
-                    <div className="bg-white rounded-xl border border-gray-200 p-6">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-                                <User className="w-5 h-5 text-emerald-600" />
-                            </div>
-                            <h2 className="text-xl font-semibold text-gray-900">Profile Information</h2>
-                        </div>
+  const mismatch = passwords.confirmPassword && passwords.newPassword !== passwords.confirmPassword;
 
-                        <form onSubmit={handleProfileUpdate} className="space-y-4">
-                            <div>
-                                <label htmlFor="settings-name" className="block text-sm font-medium text-gray-700 mb-2">Name</label>
-                                <input
-                                    id="settings-name"
-                                    type="text"
-                                    value={profile.name}
-                                    onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                                    className={inputClass}
-                                    required
-                                />
-                            </div>
+  return (
+    <>
+      <PageHeader title="Settings" description="Your account and cooking preferences." />
 
-                            <div>
-                                <label htmlFor="settings-email" className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                                <input
-                                    id="settings-email"
-                                    type="email"
-                                    value={profile.email}
-                                    onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                                    className={inputClass}
-                                    required
-                                />
-                            </div>
+      <Card className="px-5 py-8 sm:px-8">
+        <Section title="Profile" description="How you sign in and what ChefAI calls you.">
+          <form onSubmit={saveProfile} className="max-w-md space-y-4">
+            <Field label="Name">
+              {(p) => <Input {...p} required autoComplete="name" value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} />}
+            </Field>
+            <Field label="Email">
+              {(p) => (
+                <Input {...p} type="email" required autoComplete="email" value={profile.email} onChange={(e) => setProfile({ ...profile, email: e.target.value })} />
+              )}
+            </Field>
+            <Button type="submit" variant="secondary" loading={saving === 'profile'}>
+              Save profile
+            </Button>
+          </form>
+        </Section>
 
-                            <button
-                                type="submit"
-                                disabled={saving}
-                                className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
-                            >
-                                <Save className="w-4 h-4" />
-                                {saving ? 'Saving...' : 'Save Profile'}
-                            </button>
-                        </form>
-                    </div>
+        <Section
+          title="Cooking preferences"
+          description="Used as the starting point for every new recipe. Allergies are always left out of AI recipes."
+        >
+          <form onSubmit={savePrefs} className="space-y-6">
+            <Field label="Allergies" hint="Separate with commas, e.g. peanuts, shellfish, sesame." className="max-w-md">
+              {(p) => <Input {...p} value={allergiesText} onChange={(e) => setAllergiesText(e.target.value)} placeholder="None" />}
+            </Field>
 
-                    {/* Change Password */}
-                    <div className="bg-white rounded-xl border border-gray-200 p-6">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                                <Lock className="w-5 h-5 text-blue-600" />
-                            </div>
-                            <h2 className="text-xl font-semibold text-gray-900">Change Password</h2>
-                        </div>
-
-                        <form onSubmit={handlePasswordChange} className="space-y-4">
-                            <div>
-                                <label htmlFor="current-password" className="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
-                                <input
-                                    id="current-password"
-                                    type="password"
-                                    autoComplete="current-password"
-                                    value={passwordData.currentPassword}
-                                    onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                                    className={inputClass}
-                                    required
-                                />
-                            </div>
-
-                            <div>
-                                <label htmlFor="new-password" className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
-                                <input
-                                    id="new-password"
-                                    type="password"
-                                    autoComplete="new-password"
-                                    value={passwordData.newPassword}
-                                    onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                                    className={inputClass}
-                                    required
-                                    minLength={6}
-                                />
-                            </div>
-
-                            <div>
-                                <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label>
-                                <input
-                                    id="confirm-password"
-                                    type="password"
-                                    autoComplete="new-password"
-                                    value={passwordData.confirmPassword}
-                                    onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                                    className={inputClass}
-                                    required
-                                    minLength={6}
-                                />
-                            </div>
-
-                            <button
-                                type="submit"
-                                disabled={saving}
-                                className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
-                            >
-                                <Lock className="w-4 h-4" />
-                                {saving ? 'Changing...' : 'Change Password'}
-                            </button>
-                        </form>
-                    </div>
-
-                    {/* Preferences */}
-                    <div className="bg-white rounded-xl border border-gray-200 p-6">
-                        <h2 className="text-xl font-semibold text-gray-900 mb-6">Dietary Preferences</h2>
-
-                        <form onSubmit={handlePreferencesUpdate} className="space-y-6">
-                            <div>
-                                <p className="block text-sm font-medium text-gray-700 mb-3">Dietary Restrictions</p>
-                                <div className="flex flex-wrap gap-2">
-                                    {DIETARY_OPTIONS.map((option) => (
-                                        <button
-                                            key={option}
-                                            type="button"
-                                            onClick={() => toggleDietary(option)}
-                                            aria-pressed={preferences.dietary_restrictions.includes(option)}
-                                            className={chipClass(preferences.dietary_restrictions.includes(option))}
-                                        >
-                                            {option}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div>
-                                <label htmlFor="settings-allergies" className="block text-sm font-medium text-gray-700 mb-2">Allergies (comma-separated)</label>
-                                <input
-                                    id="settings-allergies"
-                                    type="text"
-                                    value={allergiesText}
-                                    onChange={(e) => setAllergiesText(e.target.value)}
-                                    placeholder="e.g., peanuts, shellfish, soy"
-                                    className={inputClass}
-                                />
-                            </div>
-
-                            <div>
-                                <p className="block text-sm font-medium text-gray-700 mb-3">Preferred Cuisines</p>
-                                <div className="flex flex-wrap gap-2">
-                                    {CUISINES.map((cuisine) => (
-                                        <button
-                                            key={cuisine}
-                                            type="button"
-                                            onClick={() => toggleCuisine(cuisine)}
-                                            aria-pressed={preferences.preferred_cuisines.includes(cuisine)}
-                                            className={chipClass(preferences.preferred_cuisines.includes(cuisine))}
-                                        >
-                                            {cuisine}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div>
-                                <label htmlFor="settings-servings" className="block text-sm font-medium text-gray-700 mb-2">
-                                    Default Servings: {preferences.default_servings}
-                                </label>
-                                <input
-                                    id="settings-servings"
-                                    type="range"
-                                    min="1"
-                                    max="12"
-                                    value={preferences.default_servings}
-                                    onChange={(e) => setPreferences({ ...preferences, default_servings: parseInt(e.target.value) })}
-                                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-500"
-                                />
-                                <div className="flex justify-between text-xs text-gray-500 mt-1">
-                                    <span>1</span>
-                                    <span>12</span>
-                                </div>
-                            </div>
-
-                            <div>
-                                <p className="block text-sm font-medium text-gray-700 mb-2">Measurement Unit</p>
-                                <div className="flex gap-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => setPreferences({ ...preferences, measurement_unit: 'metric' })}
-                                        aria-pressed={preferences.measurement_unit === 'metric'}
-                                        className={`flex-1 ${chipClass(preferences.measurement_unit === 'metric')}`}
-                                    >
-                                        Metric (kg, L)
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setPreferences({ ...preferences, measurement_unit: 'imperial' })}
-                                        aria-pressed={preferences.measurement_unit === 'imperial'}
-                                        className={`flex-1 ${chipClass(preferences.measurement_unit === 'imperial')}`}
-                                    >
-                                        Imperial (lb, gal)
-                                    </button>
-                                </div>
-                            </div>
-
-                            <button
-                                type="submit"
-                                disabled={saving}
-                                className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
-                            >
-                                <Save className="w-4 h-4" />
-                                {saving ? 'Saving...' : 'Save Preferences'}
-                            </button>
-                        </form>
-                    </div>
-
-                    {/* Danger Zone */}
-                    <div className="bg-white rounded-xl border border-red-200 p-6">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                                <Trash2 className="w-5 h-5 text-red-600" />
-                            </div>
-                            <h2 className="text-xl font-semibold text-gray-900">Danger Zone</h2>
-                        </div>
-
-                        <p className="text-gray-600 mb-4">
-                            Once you delete your account, there is no going back. All your recipes, meal plans, and data will be permanently deleted.
-                        </p>
-
-                        <button
-                            type="button"
-                            onClick={handleDeleteAccount}
-                            className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                            Delete Account
-                        </button>
-                    </div>
-                </div>
+            <div className="space-y-2">
+              <p className="text-[13px] font-medium text-ink-2">Diet</p>
+              <div className="flex flex-wrap gap-1.5">
+                {DIETARY_OPTIONS.map((o) => (
+                  <Chip key={o} selected={prefs.dietary_restrictions.includes(o)} onClick={() => toggleIn('dietary_restrictions', o)}>
+                    {o}
+                  </Chip>
+                ))}
+              </div>
             </div>
-        </div>
-    );
+
+            <div className="space-y-2">
+              <p className="text-[13px] font-medium text-ink-2">Favourite cuisines</p>
+              <div className="flex flex-wrap gap-1.5">
+                {CUISINES.map((c) => (
+                  <Chip key={c} selected={prefs.preferred_cuisines.includes(c)} onClick={() => toggleIn('preferred_cuisines', c)}>
+                    {c}
+                  </Chip>
+                ))}
+              </div>
+              <p className="text-xs text-muted">The first one you pick is preselected for new recipes.</p>
+            </div>
+
+            <div className="flex flex-wrap gap-8">
+              <div className="space-y-1.5">
+                <p className="text-[13px] font-medium text-ink-2">Default servings</p>
+                <Stepper value={prefs.default_servings} onChange={(v) => setPrefs({ ...prefs, default_servings: v })} min={1} max={12} label="default servings" />
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-[13px] font-medium text-ink-2">Units</p>
+                <Segmented
+                  value={prefs.measurement_unit}
+                  onChange={(v) => setPrefs({ ...prefs, measurement_unit: v })}
+                  label="Units"
+                  options={[
+                    { value: 'metric', label: 'Metric (g, ml)' },
+                    { value: 'imperial', label: 'Imperial (oz, cups)' },
+                  ]}
+                />
+              </div>
+            </div>
+
+            <Button type="submit" variant="secondary" loading={saving === 'prefs'}>
+              Save preferences
+            </Button>
+          </form>
+        </Section>
+
+        <Section title="Password" description="Use at least 6 characters.">
+          <form onSubmit={savePassword} className="max-w-md space-y-4">
+            <Field label="Current password">
+              {(p) => (
+                <Input
+                  {...p}
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  value={passwords.currentPassword}
+                  onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })}
+                />
+              )}
+            </Field>
+            <Field label="New password">
+              {(p) => (
+                <Input
+                  {...p}
+                  type="password"
+                  required
+                  minLength={6}
+                  autoComplete="new-password"
+                  value={passwords.newPassword}
+                  onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
+                />
+              )}
+            </Field>
+            <Field label="Confirm new password" error={mismatch ? 'Passwords don’t match' : undefined}>
+              {(p) => (
+                <Input
+                  {...p}
+                  type="password"
+                  required
+                  minLength={6}
+                  autoComplete="new-password"
+                  value={passwords.confirmPassword}
+                  onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })}
+                />
+              )}
+            </Field>
+            <Button type="submit" variant="secondary" loading={saving === 'password'}>
+              Change password
+            </Button>
+          </form>
+        </Section>
+
+        <Section title="Delete account" description="Permanently remove your account and everything in it." danger>
+          <Button variant="danger-ghost" className="-ml-3" onClick={deleteAccount}>
+            Delete my account
+          </Button>
+        </Section>
+      </Card>
+    </>
+  );
 };
 
 export default Settings;

@@ -1,301 +1,159 @@
 @import 'tailwindcss';
 
-/* Fresh kitchen design system */
+/*
+  ChefAI design tokens
+  A calm "cookbook" palette: warm paper, dark ink, one tomato accent.
+  Status colours: herb (fresh/ok), amber (use soon), danger (expired/destructive).
+*/
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Fraunces', ui-serif, Georgia, 'Times New Roman', serif;
+
+  --color-paper: #f8f5ef;
+  --color-surface: #ffffff;
+  --color-sunken: #f1ede5;
+  --color-line: #e6e0d5;
+  --color-line-strong: #d4ccbe;
+
+  --color-ink: #1f1a15;
+  --color-ink-2: #4a433b;
+  --color-muted: #6f675d;
+
+  --color-brand: #c2410c;
+  --color-brand-hover: #9a3412;
+  --color-brand-soft: #fcede3;
+  --color-brand-ink: #9a3412;
+  --color-brand-bright: #e2672f;
+
+  --color-herb: #3f6212;
+  --color-herb-soft: #edf2e1;
+  --color-amber: #a1520a;
+  --color-amber-soft: #fbf0dc;
+  --color-danger: #b42318;
+  --color-danger-soft: #fbeae8;
+
+  --radius-card: 0.875rem;
+
+  --shadow-card: 0 1px 2px rgb(31 26 21 / 0.04);
+  --shadow-pop: 0 12px 32px -8px rgb(31 26 21 / 0.18), 0 2px 6px rgb(31 26 21 / 0.06);
+
+  --animate-fade-up: fade-up 0.5s ease-out both;
+  --animate-fade-in: fade-in 0.15s ease-out both;
+  --animate-pop-in: pop-in 0.18s ease-out both;
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes pop-in {
+    from { opacity: 0; transform: translateY(6px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+}
 
 @layer base {
-  :root {
-    --kitchen-cream: #fff8ef;
-    --kitchen-surface: #fffaf4;
-    --kitchen-card: #ffffff;
-    --kitchen-ink: #211b17;
-    --kitchen-muted: #766d61;
-    --kitchen-line: #f1dcc3;
-    --kitchen-tomato: #fc8019;
-    --kitchen-tomato-dark: #e96a00;
-    --kitchen-sage: #456f55;
-    --kitchen-sage-soft: #eaf4e8;
-    --kitchen-gold: #f3aa2f;
-    --kitchen-sky: #417f94;
-    --kitchen-charcoal: #27211d;
-  }
-
-  * {
-    @apply border-gray-200;
-  }
-
   html {
-    background: var(--kitchen-cream);
+    background: var(--color-paper);
+    color: var(--color-ink);
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
-    @apply text-gray-900 font-sans antialiased;
     min-width: 320px;
     min-height: 100vh;
-    color: var(--kitchen-ink);
-    background:
-      radial-gradient(circle at top left, rgba(252, 128, 25, 0.2), transparent 28rem),
-      radial-gradient(circle at top right, rgba(69, 111, 85, 0.2), transparent 30rem),
-      linear-gradient(135deg, #fff8ef 0%, #fff1df 44%, #f0f7ed 100%);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv11', 'ss01';
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    @apply font-semibold;
-    color: var(--kitchen-ink);
-  }
-
-  button,
-  a,
-  input,
-  select {
-    -webkit-tap-highlight-color: transparent;
-  }
-}
-
-@layer components {
-
-  /* Custom scrollbar */
-  .custom-scrollbar::-webkit-scrollbar {
-    @apply w-2 h-2;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-track {
-    @apply bg-gray-100;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 rounded-full;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-400;
-  }
-}
-
-@layer utilities {
-  .text-balance {
+  h1, h2, h3, h4 {
+    color: var(--color-ink);
     text-wrap: balance;
   }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background: var(--color-brand-soft);
+    color: var(--color-brand-ink);
+  }
+
+  button, a, input, select, textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button:not(:disabled), [role='button'] {
+    cursor: pointer;
+  }
+
+  /* One consistent, visible focus style for keyboard users */
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+
+  input[type='date']::-webkit-calendar-picker-indicator {
+    opacity: 0.6;
+    cursor: pointer;
+  }
 }
 
 @layer components {
-  .kitchen-page {
-    min-height: 100vh;
-    background:
-      radial-gradient(circle at 12% 4%, rgba(252, 128, 25, 0.14), transparent 22rem),
-      radial-gradient(circle at 88% 10%, rgba(69, 111, 85, 0.18), transparent 24rem),
-      linear-gradient(180deg, rgba(255, 248, 239, 0.96) 0%, rgba(255, 241, 223, 0.98) 45%, rgba(240, 247, 237, 0.9) 100%);
+  /* Serif display type for page titles and recipe names */
+  .display {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    font-weight: 500;
+    letter-spacing: -0.015em;
   }
 
-  .kitchen-shell {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8;
+  /* Dropdown arrow for <Select> (native arrow is hidden for consistent styling) */
+  .select-chevron {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236f675d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-position: right 10px center;
+    background-repeat: no-repeat;
+    background-size: 16px;
   }
 
-  .kitchen-card {
-    border: 1px solid rgba(234, 223, 206, 0.95);
-    background: rgba(255, 253, 248, 0.92);
-    box-shadow: 0 18px 44px rgba(68, 52, 35, 0.08);
+  .tabular {
+    font-variant-numeric: tabular-nums;
   }
 
-  .kitchen-button {
-    background: linear-gradient(135deg, var(--kitchen-tomato), var(--kitchen-tomato-dark));
-    box-shadow: 0 14px 28px rgba(252, 128, 25, 0.24);
+  .scrollbar-none {
+    scrollbar-width: none;
   }
-
-  .chefai-mark {
-    position: relative;
-    display: inline-flex;
-    height: 2.75rem;
-    width: 2.75rem;
-    align-items: center;
-    justify-content: center;
-    border-radius: 1rem;
-    color: #fffaf1;
-    background:
-      linear-gradient(135deg, rgba(255, 255, 255, 0.22), transparent 45%),
-      linear-gradient(135deg, var(--kitchen-charcoal), #5a2c1f 52%, var(--kitchen-tomato));
-    box-shadow: 0 18px 34px rgba(73, 37, 27, 0.24);
-  }
-
-  .chefai-spark {
-    position: absolute;
-    right: -0.18rem;
-    top: -0.18rem;
-    border-radius: 999px;
-    color: var(--kitchen-gold);
-    filter: drop-shadow(0 4px 8px rgba(243, 170, 47, 0.42));
-  }
-
-  .chefai-glass {
-    border: 1px solid rgba(234, 217, 191, 0.88);
-    background: rgba(255, 250, 241, 0.72);
-    box-shadow: 0 22px 50px rgba(67, 47, 31, 0.1);
-    backdrop-filter: blur(18px);
-  }
-
-  .chefai-dark-card {
-    color: #fffaf1;
-    background:
-      radial-gradient(circle at top right, rgba(240, 90, 60, 0.42), transparent 18rem),
-      linear-gradient(135deg, #2b241f 0%, #17130f 100%);
-    box-shadow: 0 28px 60px rgba(35, 26, 20, 0.25);
-  }
-
-  .chefai-input {
-    border: 1px solid #ddc9ad;
-    background: rgba(255, 252, 246, 0.86);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
-  }
-
-  .chefai-input:focus {
-    border-color: var(--kitchen-tomato);
-    outline: 0;
-    box-shadow: 0 0 0 4px rgba(240, 90, 60, 0.13);
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 }
 
-/* Palette remap for the existing Tailwind-heavy UI. */
-.bg-gray-50,
-.bg-slate-50 {
-  background-color: transparent;
-}
-
-.bg-white {
-  background-color: rgba(255, 250, 241, 0.94);
-}
-
-.border-gray-200,
-.border-slate-200 {
-  border-color: rgba(234, 223, 206, 0.95);
-}
-
-.border-gray-300,
-.border-slate-300 {
-  border-color: #d9cbb8;
-}
-
-.text-gray-900,
-.text-slate-900 {
-  color: var(--kitchen-ink);
-}
-
-.text-gray-700,
-.text-slate-700 {
-  color: #3f4a44;
-}
-
-.text-gray-600,
-.text-slate-600,
-.text-gray-500,
-.text-slate-500 {
-  color: var(--kitchen-muted);
-}
-
-.bg-emerald-500,
-.bg-emerald-600,
-.bg-green-500 {
-  background: linear-gradient(135deg, #ff983f, var(--kitchen-tomato) 48%, var(--kitchen-tomato-dark));
-}
-
-.hover\:bg-emerald-600:hover,
-.hover\:bg-emerald-700:hover {
-  background: linear-gradient(135deg, #ff8f30, #db6200);
-}
-
-.disabled\:bg-emerald-400:disabled {
-  background: #ffc18d;
-}
-
-.text-emerald-500,
-.text-emerald-600,
-.text-emerald-700 {
-  color: var(--kitchen-tomato);
-}
-
-.hover\:text-emerald-600:hover,
-.hover\:text-emerald-700:hover {
-  color: var(--kitchen-tomato-dark);
-}
-
-.bg-emerald-50,
-.bg-emerald-100 {
-  background-color: #fff4e8;
-}
-
-.text-emerald-800,
-.text-emerald-900 {
-  color: #8a3d00;
-}
-
-.border-emerald-100,
-.border-emerald-200,
-.border-emerald-300 {
-  border-color: #f7cfac;
-}
-
-.hover\:bg-emerald-50:hover {
-  background-color: #fff4e8;
-}
-
-.focus\:border-emerald-500:focus {
-  border-color: var(--kitchen-tomato);
-}
-
-.focus\:ring-emerald-100:focus,
-.focus\:ring-emerald-200:focus,
-.focus\:ring-emerald-500:focus {
-  --tw-ring-color: rgba(252, 128, 25, 0.24);
-}
-
-.accent-emerald-500 {
-  accent-color: var(--kitchen-tomato);
-}
-
-.text-blue-600,
-.text-blue-500 {
-  color: var(--kitchen-sky);
-}
-
-.bg-blue-100,
-.bg-blue-500 {
-  background-color: #e8f3f6;
-}
-
-.hover\:bg-blue-600:hover {
-  background-color: #3d7f99;
-}
-
-.text-purple-600,
-.text-purple-700 {
-  color: var(--kitchen-sage);
-}
-
-.bg-purple-100 {
-  background-color: var(--kitchen-sage-soft);
-}
-
-.bg-slate-100,
-.bg-gray-100 {
-  background-color: rgba(95, 141, 107, 0.1);
-}
-
-.hover\:bg-slate-200:hover,
-.hover\:bg-gray-200:hover,
-.hover\:bg-gray-100:hover {
-  background-color: rgba(95, 141, 107, 0.16);
-}
-
-.shadow-sm {
-  box-shadow: 0 10px 24px rgba(68, 52, 35, 0.06);
-}
-
-.shadow-lg,
-.hover\:shadow-lg:hover,
-.hover\:shadow-md:hover {
-  box-shadow: 0 20px 44px rgba(68, 52, 35, 0.12);
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

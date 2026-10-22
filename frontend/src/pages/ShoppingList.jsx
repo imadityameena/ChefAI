@@ -1,499 +1,333 @@
-import { useState, useEffect } from "react";
-import { ShoppingCart, Plus, X, Check, Trash2, CalendarDays } from "lucide-react";
-import { format, addDays } from "date-fns";
-import Navbar from "../components/Navbar";
-import toast from "react-hot-toast";
-import api from "../services/api";
+import { useEffect, useMemo, useState } from 'react';
+import { addDays, format } from 'date-fns';
+import { CalendarDays, Check, PackagePlus, Plus, ShoppingBasket, Trash2, X } from 'lucide-react';
+import toast from 'react-hot-toast';
+import api from '../services/api';
+import { CATEGORIES, UNITS } from '../lib/constants';
+import { errorMessage, formatQuantity } from '../lib/format';
+import { useConfirm } from '../components/ConfirmDialog';
+import {
+  Button,
+  Card,
+  EmptyState,
+  Field,
+  IconButton,
+  Input,
+  Modal,
+  PageHeader,
+  Select,
+  Skeleton,
+  cx,
+} from '../components/ui';
 
-const CATEGORIES = [
-  "Produce",
-  "Dairy",
-  "Meat",
-  "Grains",
-  "Spices",
-  "Beverages",
-  "Other",
-];
-
-const UNITS = ["pcs", "kg", "g", "l", "ml", "cup", "tbsp", "tsp", "pack"];
-
-const ShoppingList = () => {
-  const [items, setItems] = useState([]);
-  const [groupedItems, setGroupedItems] = useState({});
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
+const AddItemModal = ({ open, onClose, onAdded }) => {
+  const [form, setForm] = useState({ ingredient_name: '', quantity: '1', unit: 'pieces', category: 'Other' });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetchShoppingList();
-  }, []);
+    if (open) setForm({ ingredient_name: '', quantity: '1', unit: 'pieces', category: 'Other' });
+  }, [open]);
 
-  const fetchShoppingList = async () => {
-    try {
-      const response = await api.get("/shopping-list?grouped=true");
-      const grouped = response.data.data.items;
-
-      const flatItems = [];
-
-      grouped.forEach((group) => {
-        group.items.forEach((item) => {
-          flatItems.push({
-            ...item,
-            category: group.category,
-          });
-        });
-      });
-
-      setItems(flatItems);
-      organizeByCategory(flatItems);
-    } catch (error) {
-      toast.error("Failed to load shopping list");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const organizeByCategory = (itemsList) => {
-    const grouped = {};
-
-    itemsList.forEach((item) => {
-      const category = item.category || "Other";
-
-      if (!grouped[category]) {
-        grouped[category] = [];
-      }
-
-      grouped[category].push(item);
-    });
-
-    setGroupedItems(grouped);
-  };
-
-  const handleToggleChecked = async (id) => {
-    try {
-      await api.put(`/shopping-list/${id}/toggle`);
-
-      const updatedItems = items.map((item) =>
-        item.id === id ? { ...item, is_checked: !item.is_checked } : item,
-      );
-
-      setItems(updatedItems);
-      organizeByCategory(updatedItems);
-    } catch (error) {
-      toast.error("Failed to update item");
-    }
-  };
-
-  const handleDeleteItem = async (id) => {
-    try {
-      await api.delete(`/shopping-list/${id}`);
-
-      const updatedItems = items.filter((item) => item.id !== id);
-
-      setItems(updatedItems);
-      organizeByCategory(updatedItems);
-
-      toast.success("Item removed");
-    } catch (error) {
-      toast.error("Failed to delete item");
-    }
-  };
-
-  const handleClearChecked = async () => {
-    if (!confirm("Remove all checked items?")) return;
-
-    try {
-      await api.delete("/shopping-list/clear/checked");
-
-      const updatedItems = items.filter((item) => !item.is_checked);
-
-      setItems(updatedItems);
-      organizeByCategory(updatedItems);
-
-      toast.success("Checked items cleared");
-    } catch (error) {
-      toast.error("Failed to clear items");
-    }
-  };
-
-  const handleAddToPantry = async () => {
-    const checkedCount = items.filter((item) => item.is_checked).length;
-
-    if (checkedCount === 0) {
-      toast.error("No items checked");
-      return;
-    }
-
-    if (!confirm(`Add ${checkedCount} checked items to pantry?`)) return;
-
-    try {
-      await api.post("/shopping-list/add-to-pantry");
-
-      const updatedItems = items.filter((item) => !item.is_checked);
-
-      setItems(updatedItems);
-      organizeByCategory(updatedItems);
-
-      toast.success("Items added to pantry");
-    } catch (error) {
-      toast.error("Failed to add items to pantry");
-    }
-  };
-
-  // Build the list from meals planned for today + the next 6 days,
-  // minus what's already in the pantry
-  const handleGenerateFromMealPlan = async () => {
-    if (
-      !confirm(
-        "Build the list from your meals for the next 7 days? Items previously added from the meal plan will be replaced.",
-      )
-    )
-      return;
-
-    setGenerating(true);
-
-    try {
-      const today = new Date();
-      const response = await api.post("/shopping-list/generate", {
-        startDate: format(today, "yyyy-MM-dd"),
-        endDate: format(addDays(today, 6), "yyyy-MM-dd"),
-      });
-
-      await fetchShoppingList();
-
-      const fromPlan = response.data.data.items.filter(
-        (item) => item.from_meal_plan,
-      ).length;
-
-      toast.success(
-        fromPlan > 0
-          ? `Added ${fromPlan} items from your meal plan`
-          : "Nothing to add: no planned meals, or your pantry already has everything",
-      );
-    } catch (error) {
-      toast.error(
-        error.response?.data?.message || "Failed to generate shopping list",
-      );
-    } finally {
-      setGenerating(false);
-    }
-  };
-
-  const generateButton = (
-    <button
-      onClick={handleGenerateFromMealPlan}
-      disabled={generating}
-      className="inline-flex items-center gap-2 border border-emerald-500 text-emerald-700 hover:bg-emerald-50 px-4 py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50"
-    >
-      <CalendarDays className="w-5 h-5" />
-      {generating ? "Generating..." : "From Meal Plan"}
-    </button>
-  );
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-
-        <div className="flex items-center justify-center h-96">
-          <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      </div>
-    );
-  }
-
-  const checkedCount = items.filter((item) => item.is_checked).length;
-
-  const totalCount = items.length;
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Shopping List</h1>
-
-          <p className="text-gray-600 mt-1">
-            {totalCount > 0
-              ? `${checkedCount} of ${totalCount} items checked`
-              : "Your shopping list is empty"}
-          </p>
-        </div>
-
-        {totalCount > 0 && (
-          <div className="flex flex-wrap gap-3 mb-6">
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-lg font-medium transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              Add Item
-            </button>
-
-            {generateButton}
-
-            {checkedCount > 0 && (
-              <>
-                <button
-                  onClick={handleAddToPantry}
-                  className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg font-medium transition-colors"
-                >
-                  <ShoppingCart className="w-5 h-5" />
-                  Add to Pantry ({checkedCount})
-                </button>
-
-                <button
-                  onClick={handleClearChecked}
-                  className="flex items-center gap-2 border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2.5 rounded-lg font-medium transition-colors"
-                >
-                  <Trash2 className="w-5 h-5" />
-                  Clear Checked
-                </button>
-              </>
-            )}
-          </div>
-        )}
-
-        {totalCount > 0 ? (
-          <div className="space-y-6">
-            {Object.entries(groupedItems).map(([category, categoryItems]) => (
-              <div
-                key={category}
-                className="bg-white rounded-xl border border-gray-200 overflow-hidden"
-              >
-                <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
-                  <h2 className="font-semibold text-gray-900">{category}</h2>
-                </div>
-
-                <div className="divide-y divide-gray-100">
-                  {categoryItems.map((item) => (
-                    <ShoppingListItem
-                      key={item.id}
-                      item={item}
-                      onToggle={handleToggleChecked}
-                      onDelete={handleDeleteItem}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-            <ShoppingCart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-
-            <p className="text-gray-500 mb-4">Your shopping list is empty</p>
-
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-lg font-medium transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              Add First Item
-            </button>
-
-            <div className="mt-3">{generateButton}</div>
-          </div>
-        )}
-      </div>
-
-      {showAddModal && (
-        <AddItemModal
-          onClose={() => setShowAddModal(false)}
-          onSuccess={fetchShoppingList}
-        />
-      )}
-    </div>
-  );
-};
-
-const ShoppingListItem = ({ item, onToggle, onDelete }) => {
-  return (
-    <div className="flex items-center justify-between px-6 py-4">
-      <button
-        type="button"
-        onClick={() => onToggle(item.id)}
-        className="flex items-start gap-3 text-left flex-1"
-      >
-        <span
-          className={`mt-0.5 w-5 h-5 rounded border flex items-center justify-center transition-colors ${
-            item.is_checked
-              ? "bg-emerald-500 border-emerald-500 text-white"
-              : "border-gray-300 text-transparent"
-          }`}
-        >
-          <Check className="w-3.5 h-3.5" />
-        </span>
-
-        <div>
-          <p
-            className={`font-medium ${
-              item.is_checked ? "text-gray-400 line-through" : "text-gray-900"
-            }`}
-          >
-            {item.ingredient_name}
-          </p>
-          <p className="text-sm text-gray-500">
-            {item.quantity} {item.unit}
-          </p>
-        </div>
-      </button>
-
-      <button
-        type="button"
-        onClick={() => onDelete(item.id)}
-        className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-        aria-label="Delete item"
-      >
-        <X className="w-4 h-4" />
-      </button>
-    </div>
-  );
-};
-
-const AddItemModal = ({ onClose, onSuccess }) => {
-  const [ingredientName, setIngredientName] = useState("");
-  const [quantity, setQuantity] = useState("1");
-  const [unit, setUnit] = useState("pcs");
-  const [category, setCategory] = useState("Other");
-  const [loading, setLoading] = useState(false);
+  const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!ingredientName.trim()) {
-      toast.error("Please enter item name");
-      return;
-    }
-
-    if (!quantity || Number(quantity) <= 0) {
-      toast.error("Please enter a valid quantity");
-      return;
-    }
-
-    setLoading(true);
-
+    setSaving(true);
     try {
-      await api.post("/shopping-list", {
-        ingredient_name: ingredientName.trim(),
-        quantity: Number(quantity),
-        unit: unit.trim() || "pcs",
-        category,
-      });
-
-      toast.success("Item added");
-      await onSuccess();
+      await api.post('/shopping-list', { ...form, ingredient_name: form.ingredient_name.trim(), quantity: parseFloat(form.quantity) });
+      toast.success(`${form.ingredient_name.trim()} added`);
+      onAdded();
       onClose();
     } catch (error) {
-      toast.error("Failed to add item");
+      toast.error(errorMessage(error, 'Could not add the item'));
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl max-w-md w-full p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-semibold text-gray-900">
-            Add Shopping Item
-          </h2>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-            aria-label="Close modal"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Item Name
-            </label>
-            <input
-              type="text"
-              value={ingredientName}
-              onChange={(e) => setIngredientName(e.target.value)}
-              placeholder="e.g. Tomatoes"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Quantity
-              </label>
-              <input
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Unit
-              </label>
-              <select
-                value={unit}
-                onChange={(e) => setUnit(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              >
-                {UNITS.map((unitOption) => (
-                  <option key={unitOption} value={unitOption}>
-                    {unitOption}
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Add to shopping list"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" form="shopping-item-form" loading={saving}>
+            Add item
+          </Button>
+        </>
+      }
+    >
+      <form id="shopping-item-form" onSubmit={handleSubmit} className="space-y-4">
+        <Field label="Item">
+          {(p) => <Input {...p} data-autofocus required value={form.ingredient_name} onChange={set('ingredient_name')} placeholder="e.g. Lemons" />}
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Quantity">
+            {(p) => <Input {...p} type="number" inputMode="decimal" min="0" step="any" required value={form.quantity} onChange={set('quantity')} />}
+          </Field>
+          <Field label="Unit">
+            {(p) => (
+              <Select {...p} value={form.unit} onChange={set('unit')}>
+                {UNITS.map((u) => (
+                  <option key={u} value={u}>
+                    {u}
                   </option>
                 ))}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Category
-            </label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            >
-              {CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
+              </Select>
+            )}
+          </Field>
+        </div>
+        <Field label="Aisle">
+          {(p) => (
+            <Select {...p} value={form.category} onChange={set('category')}>
+              {CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
                 </option>
               ))}
-            </select>
-          </div>
+            </Select>
+          )}
+        </Field>
+      </form>
+    </Modal>
+  );
+};
 
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-            >
-              Cancel
-            </button>
+const ShoppingList = () => {
+  const confirm = useConfirm();
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [busy, setBusy] = useState(''); // which bulk action is running
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {loading ? "Adding..." : "Add Item"}
-            </button>
+  const fetchList = () =>
+    api
+      .get('/shopping-list?grouped=true')
+      .then((res) => {
+        const flat = [];
+        for (const group of res.data.data.items || []) {
+          for (const item of group.items) flat.push({ ...item, category: group.category });
+        }
+        setItems(flat);
+      })
+      .catch(() => toast.error('Could not load your shopping list'))
+      .finally(() => setLoading(false));
+
+  useEffect(() => {
+    fetchList();
+  }, []);
+
+  const groups = useMemo(() => {
+    const map = new Map();
+    for (const item of items) {
+      const key = item.category && item.category !== 'Uncategorized' ? item.category : 'Other';
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(item);
+    }
+    // Unchecked first within each aisle
+    for (const list of map.values()) list.sort((a, b) => Number(a.is_checked) - Number(b.is_checked) || a.ingredient_name.localeCompare(b.ingredient_name));
+    return [...map.entries()].sort(([a], [b]) => (a === 'Other') - (b === 'Other') || a.localeCompare(b));
+  }, [items]);
+
+  const checkedCount = items.filter((i) => i.is_checked).length;
+  const progress = items.length ? Math.round((checkedCount / items.length) * 100) : 0;
+
+  const toggle = async (item) => {
+    // Update instantly, roll back if the request fails
+    setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, is_checked: !i.is_checked } : i)));
+    try {
+      await api.put(`/shopping-list/${item.id}/toggle`);
+    } catch {
+      setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, is_checked: item.is_checked } : i)));
+      toast.error('Could not update the item');
+    }
+  };
+
+  const remove = async (item) => {
+    try {
+      await api.delete(`/shopping-list/${item.id}`);
+      setItems((prev) => prev.filter((i) => i.id !== item.id));
+    } catch {
+      toast.error('Could not remove the item');
+    }
+  };
+
+  const generateFromPlan = async () => {
+    const ok = await confirm({
+      title: 'Build list from your meal plan?',
+      description:
+        'Adds what you need for meals in the next 7 days, minus what’s already in your pantry. Items added from the plan before will be replaced.',
+      confirmLabel: 'Build list',
+    });
+    if (!ok) return;
+    setBusy('generate');
+    try {
+      const today = new Date();
+      const res = await api.post('/shopping-list/generate', {
+        startDate: format(today, 'yyyy-MM-dd'),
+        endDate: format(addDays(today, 6), 'yyyy-MM-dd'),
+      });
+      await fetchList();
+      const fromPlan = (res.data.data.items || []).filter((i) => i.from_meal_plan).length;
+      toast.success(fromPlan ? `Added ${fromPlan} items from your meal plan` : 'Nothing needed: no meals planned, or your pantry has it all');
+    } catch (error) {
+      toast.error(errorMessage(error, 'Could not build the list'));
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const moveToPantry = async () => {
+    setBusy('pantry');
+    try {
+      await api.post('/shopping-list/add-to-pantry');
+      setItems((prev) => prev.filter((i) => !i.is_checked));
+      toast.success(`${checkedCount} ${checkedCount === 1 ? 'item' : 'items'} moved to your pantry`);
+    } catch {
+      toast.error('Could not move items to your pantry');
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const clearChecked = async () => {
+    const ok = await confirm({ title: `Remove ${checkedCount} checked ${checkedCount === 1 ? 'item' : 'items'}?`, confirmLabel: 'Remove', danger: true });
+    if (!ok) return;
+    setBusy('clear');
+    try {
+      await api.delete('/shopping-list/clear/checked');
+      setItems((prev) => prev.filter((i) => !i.is_checked));
+    } catch {
+      toast.error('Could not clear items');
+    } finally {
+      setBusy('');
+    }
+  };
+
+  return (
+    <>
+      <PageHeader
+        title="Shopping list"
+        description={items.length ? `${checkedCount} of ${items.length} in the basket` : 'Everything you need to buy, grouped by aisle.'}
+        actions={
+          <>
+            <Button variant="secondary" icon={CalendarDays} onClick={generateFromPlan} loading={busy === 'generate'}>
+              From meal plan
+            </Button>
+            <Button icon={Plus} onClick={() => setAdding(true)}>
+              Add item
+            </Button>
+          </>
+        }
+      />
+
+      {items.length > 0 && (
+        <div className="mb-6">
+          <div className="h-1.5 overflow-hidden rounded-full bg-sunken" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} aria-label="Items checked">
+            <div className="h-full rounded-full bg-herb transition-[width] duration-300" style={{ width: `${progress}%` }} />
           </div>
-        </form>
-      </div>
-    </div>
+          {checkedCount > 0 && (
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Button size="sm" variant="secondary" icon={PackagePlus} onClick={moveToPantry} loading={busy === 'pantry'}>
+                Move {checkedCount} to pantry
+              </Button>
+              <Button size="sm" variant="ghost" icon={X} onClick={clearChecked} loading={busy === 'clear'}>
+                Clear checked
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {loading ? (
+        <Card className="divide-y divide-line">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 px-5 py-4">
+              <Skeleton className="size-5 rounded-full" />
+              <Skeleton className="h-4 w-48" />
+            </div>
+          ))}
+        </Card>
+      ) : items.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon={ShoppingBasket}
+            title="Your list is empty"
+            description="Build it from this week’s meal plan, or add items yourself."
+            action={
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button variant="secondary" icon={CalendarDays} onClick={generateFromPlan} loading={busy === 'generate'}>
+                  From meal plan
+                </Button>
+                <Button icon={Plus} onClick={() => setAdding(true)}>
+                  Add item
+                </Button>
+              </div>
+            }
+          />
+        </Card>
+      ) : (
+        <div className="space-y-6">
+          {groups.map(([aisle, list]) => (
+            <section key={aisle} aria-labelledby={`aisle-${aisle}`}>
+              <h2 id={`aisle-${aisle}`} className="mb-2 flex items-baseline gap-2 px-1 text-sm font-semibold text-ink">
+                {aisle}
+                <span className="tabular text-xs font-normal text-muted">{list.length}</span>
+              </h2>
+              <Card as="ul" className="divide-y divide-line overflow-hidden">
+                {list.map((item) => (
+                  <li key={item.id} className="group flex items-center gap-3 pr-3 hover:bg-paper/50">
+                    <button
+                      type="button"
+                      role="checkbox"
+                      aria-checked={item.is_checked}
+                      onClick={() => toggle(item)}
+                      className="flex min-w-0 flex-1 items-center gap-3 py-3.5 pl-5 text-left"
+                    >
+                      <span
+                        className={cx(
+                          'flex size-5 shrink-0 items-center justify-center rounded-full border transition-colors',
+                          item.is_checked ? 'border-herb bg-herb text-white' : 'border-line-strong bg-surface group-hover:border-ink/40',
+                        )}
+                        aria-hidden="true"
+                      >
+                        {item.is_checked && <Check className="size-3" strokeWidth={3} />}
+                      </span>
+                      <span className={cx('min-w-0 flex-1 truncate text-[15px]', item.is_checked ? 'text-muted line-through' : 'text-ink')}>
+                        {item.ingredient_name}
+                      </span>
+                      <span className={cx('tabular shrink-0 text-sm', item.is_checked ? 'text-muted' : 'text-ink-2')}>
+                        {formatQuantity(item.quantity)} {item.unit}
+                      </span>
+                    </button>
+                    {item.from_meal_plan && (
+                      <span title="Added from your meal plan" className="shrink-0 text-muted/70">
+                        <CalendarDays className="size-3.5" aria-hidden="true" />
+                        <span className="sr-only">From meal plan</span>
+                      </span>
+                    )}
+                    <IconButton
+                      icon={Trash2}
+                      label={`Remove ${item.ingredient_name}`}
+                      size="sm"
+                      variant="danger"
+                      onClick={() => remove(item)}
+                      className="sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100"
+                    />
+                  </li>
+                ))}
+              </Card>
+            </section>
+          ))}
+        </div>
+      )}
+
+      <AddItemModal open={adding} onClose={() => setAdding(false)} onAdded={fetchList} />
+    </>
   );
 };
 

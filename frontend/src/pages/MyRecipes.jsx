@@ -1,466 +1,232 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-    Search,
-    Clock,
-    ChefHat,
-    Trash2
-} from 'lucide-react';
-import Navbar from '../components/Navbar';
+import { BookOpen, Clock, Flame, Search, Sparkles, Trash2, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
+import { DIFFICULTIES } from '../lib/constants';
+import { formatMinutes } from '../lib/format';
+import { useConfirm } from '../components/ConfirmDialog';
+import { Badge, ButtonLink, Card, EmptyState, IconButton, Input, PageHeader, Select, Skeleton } from '../components/ui';
 
-const MyRecipes = () => {
-    const [recipes, setRecipes] =
-        useState([]);
-
-    const [
-        filteredRecipes,
-        setFilteredRecipes
-    ] = useState([]);
-
-    const [
-        searchQuery,
-        setSearchQuery
-    ] = useState('');
-
-    const [
-        selectedCuisine,
-        setSelectedCuisine
-    ] = useState('All');
-
-    const [
-        selectedDifficulty,
-        setSelectedDifficulty
-    ] = useState('All');
-
-    const [loading, setLoading] =
-        useState(true);
-
-    const cuisines = [
-        'All',
-        'Italian',
-        'Mexican',
-        'Indian',
-        'Chinese',
-        'Japanese',
-        'Thai',
-        'French',
-        'Mediterranean',
-        'American'
-    ];
-
-    const difficulties = [
-        'All',
-        'easy',
-        'medium',
-        'hard'
-    ];
-
-    useEffect(() => {
-        fetchRecipes();
-    }, []);
-
-    useEffect(() => {
-        filterRecipes();
-    }, [
-        recipes,
-        searchQuery,
-        selectedCuisine,
-        selectedDifficulty
-    ]);
-
-    const fetchRecipes =
-        async () => {
-            try {
-                const response =
-                    await api.get(
-                        '/recipes'
-                    );
-
-                setRecipes(
-                    response.data.data
-                        .recipes
-                );
-            } catch (error) {
-                toast.error(
-                    'Failed to load recipes'
-                );
-            } finally {
-                setLoading(false);
-            }
-        };
-
-    const filterRecipes = () => {
-        let filtered = recipes;
-
-        if (searchQuery) {
-            filtered =
-                filtered.filter(
-                    (recipe) =>
-                        recipe.name
-                            .toLowerCase()
-                            .includes(
-                                searchQuery.toLowerCase()
-                            ) ||
-                        recipe.description
-                            ?.toLowerCase()
-                            .includes(
-                                searchQuery.toLowerCase()
-                            )
-                );
-        }
-
-        if (
-            selectedCuisine !==
-            'All'
-        ) {
-            filtered =
-                filtered.filter(
-                    (recipe) =>
-                        recipe.cuisine_type ===
-                        selectedCuisine
-                );
-        }
-
-        if (
-            selectedDifficulty !==
-            'All'
-        ) {
-            filtered =
-                filtered.filter(
-                    (recipe) =>
-                        recipe.difficulty ===
-                        selectedDifficulty
-                );
-        }
-
-        setFilteredRecipes(
-            filtered
-        );
-    };
-
-    const handleDelete =
-        async (id) => {
-            if (
-                !confirm(
-                    'Are you sure you want to delete this recipe?'
-                )
-            )
-                return;
-
-            try {
-                await api.delete(
-                    `/recipes/${id}`
-                );
-
-                setRecipes(
-                    recipes.filter(
-                        (
-                            recipe
-                        ) =>
-                            recipe.id !==
-                            id
-                    )
-                );
-
-                toast.success(
-                    'Recipe deleted'
-                );
-            } catch (error) {
-                toast.error(
-                    'Failed to delete recipe'
-                );
-            }
-        };
-
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-gray-50">
-                <Navbar />
-
-                <div className="flex items-center justify-center h-96">
-                    <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div className="min-h-screen bg-gray-50">
-            <Navbar />
-
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {/* Header */}
-                <div className="mb-6">
-                    <h1 className="text-3xl font-bold text-gray-900">
-                        My Recipes
-                    </h1>
-
-                    <p className="text-gray-600 mt-1">
-                        Your collection
-                        of saved
-                        recipes
-                    </p>
-                </div>
-
-                {/* Search and Filters */}
-                <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-                    <div className="flex flex-col lg:flex-row gap-4">
-                        {/* Search */}
-                        <div className="flex-1 relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-
-                            <input
-                                type="text"
-                                value={
-                                    searchQuery
-                                }
-                                onChange={(
-                                    e
-                                ) =>
-                                    setSearchQuery(
-                                        e
-                                            .target
-                                            .value
-                                    )
-                                }
-                                placeholder="Search recipes..."
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
-                            />
-                        </div>
-
-                        {/* Cuisine Filter */}
-                        <select
-                            value={
-                                selectedCuisine
-                            }
-                            onChange={(
-                                e
-                            ) =>
-                                setSelectedCuisine(
-                                    e
-                                        .target
-                                        .value
-                                )
-                            }
-                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
-                        >
-                            {cuisines.map(
-                                (
-                                    cuisine
-                                ) => (
-                                    <option
-                                        key={
-                                            cuisine
-                                        }
-                                        value={
-                                            cuisine
-                                        }
-                                    >
-                                        {cuisine ===
-                                        'All'
-                                            ? 'All Cuisines'
-                                            : cuisine}
-                                    </option>
-                                )
-                            )}
-                        </select>
-
-                        {/* Difficulty Filter */}
-                        <select
-                            value={
-                                selectedDifficulty
-                            }
-                            onChange={(
-                                e
-                            ) =>
-                                setSelectedDifficulty(
-                                    e
-                                        .target
-                                        .value
-                                )
-                            }
-                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
-                        >
-                            {difficulties.map(
-                                (
-                                    diff
-                                ) => (
-                                    <option
-                                        key={
-                                            diff
-                                        }
-                                        value={
-                                            diff
-                                        }
-                                    >
-                                        {diff ===
-                                        'All'
-                                            ? 'All Difficulties'
-                                            : diff.charAt(
-                                                  0
-                                              ) +
-                                              diff
-                                                  .slice(
-                                                      1
-                                                  )}
-                                    </option>
-                                )
-                            )}
-                        </select>
-                    </div>
-                </div>
-
-                {/* Recipe Count */}
-                <div className="mb-4">
-                    <p className="text-sm text-gray-600">
-                        Showing{' '}
-                        {
-                            filteredRecipes.length
-                        }{' '}
-                        of{' '}
-                        {
-                            recipes.length
-                        }{' '}
-                        recipes
-                    </p>
-                </div>
-
-                {/* Recipes Grid */}
-                {filteredRecipes.length >
-                0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredRecipes.map(
-                            (
-                                recipe
-                            ) => (
-                                <RecipeCard
-                                    key={
-                                        recipe.id
-                                    }
-                                    recipe={
-                                        recipe
-                                    }
-                                    onDelete={
-                                        handleDelete
-                                    }
-                                />
-                            )
-                        )}
-                    </div>
-                ) : (
-                    <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-                        <ChefHat className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-
-                        <p className="text-gray-500 mb-4">
-                            {recipes.length ===
-                            0
-                                ? 'No recipes yet'
-                                : 'No recipes match your filters'}
-                        </p>
-
-                        {recipes.length ===
-                            0 && (
-                            <Link
-                                to="/generate"
-                                className="inline-block bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-lg font-medium transition-colors"
-                            >
-                                Generate
-                                Your
-                                First
-                                Recipe
-                            </Link>
-                        )}
-                    </div>
-                )}
-            </div>
+const RecipeCard = ({ recipe, onDelete }) => {
+  const total = (recipe.prep_time || 0) + (recipe.cook_time || 0);
+  return (
+    <Card as="li" className="group relative flex flex-col transition-[border-color,box-shadow] hover:border-line-strong hover:shadow-[0_4px_16px_-6px_rgb(31_26_21/0.12)]">
+      <div className="flex flex-1 flex-col p-5">
+        <p className="mb-2 flex items-center gap-2 text-xs text-muted">
+          {recipe.cuisine_type && <span>{recipe.cuisine_type}</span>}
+          {recipe.cuisine_type && recipe.difficulty && <span aria-hidden="true">·</span>}
+          {recipe.difficulty && <span className="capitalize">{recipe.difficulty}</span>}
+        </p>
+        <h2 className="display text-[21px] leading-snug">
+          {/* The whole card is clickable through this link */}
+          <Link to={`/recipes/${recipe.id}`} className="after:absolute after:inset-0 after:rounded-[var(--radius-card)] focus-visible:outline-none">
+            {recipe.name}
+          </Link>
+        </h2>
+        {recipe.description && <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted">{recipe.description}</p>}
+        {recipe.dietary_tags?.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1">
+            {recipe.dietary_tags.slice(0, 3).map((tag) => (
+              <Badge key={tag} tone="outline">
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="flex items-center justify-between border-t border-line px-5 py-3 text-[13px] text-muted">
+        <div className="tabular flex items-center gap-4">
+          <span className="flex items-center gap-1.5">
+            <Clock className="size-3.5" aria-hidden="true" />
+            {formatMinutes(total)}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Users className="size-3.5" aria-hidden="true" />
+            {recipe.servings || '—'}
+          </span>
+          {recipe.calories && (
+            <span className="flex items-center gap-1.5">
+              <Flame className="size-3.5" aria-hidden="true" />
+              {recipe.calories} kcal
+            </span>
+          )}
         </div>
-    );
+        {/* Above the card link so it stays clickable */}
+        <IconButton
+          icon={Trash2}
+          label={`Delete ${recipe.name}`}
+          variant="danger"
+          size="sm"
+          onClick={() => onDelete(recipe)}
+          className="relative z-10 -my-1 -mr-2 sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100"
+        />
+      </div>
+    </Card>
+  );
 };
 
-const RecipeCard = ({
-    recipe,
-    onDelete
-}) => {
-    const totalTime =
-        (recipe.prep_time ||
-            0) +
-        (recipe.cook_time ||
-            0);
+const MyRecipes = () => {
+  const confirm = useConfirm();
+  const [recipes, setRecipes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [cuisine, setCuisine] = useState('all');
+  const [difficulty, setDifficulty] = useState('all');
+  const [sort, setSort] = useState('newest');
 
-    return (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all group">
-            <div className="h-48 bg-linear-to-br from-emerald-100 to-emerald-200 flex items-center justify-center">
-                <ChefHat className="w-16 h-16 text-emerald-600" />
-            </div>
+  useEffect(() => {
+    api
+      .get('/recipes')
+      .then((res) => setRecipes(res.data.data.recipes || []))
+      .catch(() => toast.error('Could not load your recipes'))
+      .finally(() => setLoading(false));
+  }, []);
 
-            <div className="p-5">
-                <Link
-                    to={`/recipes/${recipe.id}`}
-                    className="block mb-3"
-                >
-                    <h3 className="font-semibold text-lg text-gray-900 group-hover:text-emerald-600 transition-colors line-clamp-2">
-                        {
-                            recipe.name
-                        }
-                    </h3>
+  // Cuisine filter options come from the recipes the user actually has
+  const cuisines = useMemo(
+    () => [...new Set(recipes.map((r) => r.cuisine_type).filter(Boolean))].sort(),
+    [recipes],
+  );
 
-                    {recipe.description && (
-                        <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                            {
-                                recipe.description
-                            }
-                        </p>
-                    )}
-                </Link>
-
-                <div className="flex flex-wrap gap-2 mb-4">
-                    {recipe.cuisine_type && (
-                        <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs font-medium">
-                            {
-                                recipe.cuisine_type
-                            }
-                        </span>
-                    )}
-                </div>
-
-                <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
-                    <div className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
-
-                        <span>
-                            {
-                                totalTime
-                            }{' '}
-                            mins
-                        </span>
-                    </div>
-                </div>
-
-                <div className="flex gap-2 pt-4 border-t border-gray-100">
-                    <Link
-                        to={`/recipes/${recipe.id}`}
-                        className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white text-center py-2 rounded-lg font-medium transition-colors text-sm"
-                    >
-                        View
-                        Recipe
-                    </Link>
-
-                    <button
-                        onClick={() =>
-                            onDelete(
-                                recipe.id
-                            )
-                        }
-                        className="px-3 py-2 border border-gray-300 text-gray-700 hover:bg-red-50 hover:border-red-300 hover:text-red-600 rounded-lg transition-colors"
-                    >
-                        <Trash2 className="w-4 h-4" />
-                    </button>
-                </div>
-            </div>
-        </div>
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const list = recipes.filter(
+      (r) =>
+        (!q || r.name.toLowerCase().includes(q) || r.description?.toLowerCase().includes(q)) &&
+        (cuisine === 'all' || r.cuisine_type === cuisine) &&
+        (difficulty === 'all' || r.difficulty === difficulty),
     );
+    const time = (r) => (r.prep_time || 0) + (r.cook_time || 0);
+    if (sort === 'name') list.sort((a, b) => a.name.localeCompare(b.name));
+    if (sort === 'quickest') list.sort((a, b) => time(a) - time(b));
+    return list;
+  }, [recipes, search, cuisine, difficulty, sort]);
+
+  const handleDelete = async (recipe) => {
+    const ok = await confirm({
+      title: 'Delete this recipe?',
+      description: `“${recipe.name}” will be removed from your recipes and meal plan.`,
+      confirmLabel: 'Delete recipe',
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await api.delete(`/recipes/${recipe.id}`);
+      setRecipes((prev) => prev.filter((r) => r.id !== recipe.id));
+      toast.success('Recipe deleted');
+    } catch {
+      toast.error('Could not delete the recipe');
+    }
+  };
+
+  const filtersActive = search || cuisine !== 'all' || difficulty !== 'all';
+
+  return (
+    <>
+      <PageHeader
+        title="Recipes"
+        description={loading ? 'Your saved recipes' : `${recipes.length} saved ${recipes.length === 1 ? 'recipe' : 'recipes'}`}
+        actions={
+          <ButtonLink to="/generate" icon={Sparkles}>
+            New recipe
+          </ButtonLink>
+        }
+      />
+
+      {recipes.length > 0 && (
+        <div className="mb-6 flex flex-col gap-2 sm:flex-row">
+          <div className="flex-1">
+            <Input
+              icon={Search}
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search recipes"
+              aria-label="Search recipes"
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-2 sm:flex">
+            <Select value={cuisine} onChange={(e) => setCuisine(e.target.value)} aria-label="Cuisine" className="sm:w-40">
+              <option value="all">All cuisines</option>
+              {cuisines.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </Select>
+            <Select value={difficulty} onChange={(e) => setDifficulty(e.target.value)} aria-label="Difficulty" className="sm:w-36">
+              <option value="all">Any level</option>
+              {DIFFICULTIES.map((d) => (
+                <option key={d} value={d}>
+                  {d[0].toUpperCase() + d.slice(1)}
+                </option>
+              ))}
+            </Select>
+            <Select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort by" className="sm:w-36">
+              <option value="newest">Newest</option>
+              <option value="name">A–Z</option>
+              <option value="quickest">Quickest</option>
+            </Select>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card as="li" key={i} className="space-y-3 p-5">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-6 w-3/4" />
+              <Skeleton className="h-4 w-full" />
+            </Card>
+          ))}
+        </ul>
+      ) : recipes.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon={BookOpen}
+            title="No recipes yet"
+            description="Generate a recipe from what’s in your kitchen and save the ones you like here."
+            action={
+              <ButtonLink to="/generate" icon={Sparkles}>
+                Create your first recipe
+              </ButtonLink>
+            }
+          />
+        </Card>
+      ) : visible.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon={Search}
+            title="No matching recipes"
+            description="Try a different search or clear the filters."
+            action={
+              filtersActive && (
+                <button
+                  type="button"
+                  className="text-sm font-medium text-brand hover:underline"
+                  onClick={() => {
+                    setSearch('');
+                    setCuisine('all');
+                    setDifficulty('all');
+                  }}
+                >
+                  Clear filters
+                </button>
+              )
+            }
+          />
+        </Card>
+      ) : (
+        <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {visible.map((recipe) => (
+            <RecipeCard key={recipe.id} recipe={recipe} onDelete={handleDelete} />
+          ))}
+        </ul>
+      )}
+    </>
+  );
 };
 
 export default MyRecipes;

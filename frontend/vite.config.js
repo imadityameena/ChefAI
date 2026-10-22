@@ -15,9 +15,6 @@ export default defineConfig({
           if (/[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/.test(id)) {
             return "react-vendor";
           }
-          if (id.includes("framer-motion") || id.includes("motion-dom") || id.includes("motion-utils")) {
-            return "motion";
-          }
         },
       },
     },

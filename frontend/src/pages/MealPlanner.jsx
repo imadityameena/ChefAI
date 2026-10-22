@@ -1,368 +1,308 @@
-import { useState, useEffect } from "react";
-import { Calendar as CalendarIcon, Plus, X, ChefHat } from "lucide-react";
-import Navbar from "../components/Navbar";
-import toast from "react-hot-toast";
-import { format, startOfWeek, addDays, parseISO } from "date-fns";
-import api from "../services/api";
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { addDays, format, isSameMonth, isToday, parseISO, startOfWeek } from 'date-fns';
+import { BookOpen, ChevronLeft, ChevronRight, Clock, Plus, Search, X } from 'lucide-react';
+import toast from 'react-hot-toast';
+import api from '../services/api';
+import { MEAL_TYPES } from '../lib/constants';
+import { errorMessage, formatMinutes } from '../lib/format';
+import { Button, ButtonLink, EmptyState, IconButton, Input, Modal, PageHeader, cx } from '../components/ui';
 
-const MEAL_TYPES = ["breakfast", "lunch", "dinner"];
-const DAYS_OF_WEEK = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-];
+const WEEK_OPTIONS = { weekStartsOn: 1 };
 
-const MealPlanner = () => {
-  const [weekStart, setWeekStart] = useState(startOfWeek(new Date()));
-  const [mealPlan, setMealPlan] = useState({});
-  const [recipes, setRecipes] = useState([]);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState(null);
-  const [loading, setLoading] = useState(true);
+const weekLabel = (start) => {
+  const end = addDays(start, 6);
+  return isSameMonth(start, end)
+    ? `${format(start, 'd')} – ${format(end, 'd MMMM yyyy')}`
+    : `${format(start, 'd MMM')} – ${format(end, 'd MMM yyyy')}`;
+};
+
+const PickRecipeModal = ({ slot, recipes, onClose, onAdded }) => {
+  const [query, setQuery] = useState('');
+  const [selected, setSelected] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetchMealPlan();
-    fetchRecipes();
-  }, [weekStart]);
+    if (slot) {
+      setQuery('');
+      setSelected(null);
+    }
+  }, [slot]);
 
-  const fetchMealPlan = async () => {
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return q ? recipes.filter((r) => r.name.toLowerCase().includes(q)) : recipes;
+  }, [recipes, query]);
+
+  const handleAdd = async () => {
+    if (!selected) return;
+    setSaving(true);
     try {
-      const startDate = format(weekStart, "yyyy-MM-dd");
-      const endDate = format(addDays(weekStart, 6), "yyyy-MM-dd");
-
-      const response = await api.get(
-        `/meal-plans/weekly?start_date=${startDate}&end_date=${endDate}`,
-      );
-
-      const meals = response.data.data.mealPlans;
-
-      const organized = {};
-
-      meals.forEach((meal) => {
-        const dateKey = meal.meal_date;
-
-        if (!organized[dateKey]) {
-          organized[dateKey] = {};
-        }
-
-        organized[dateKey][meal.meal_type] = meal;
-      });
-
-      setMealPlan(organized);
+      await api.post('/meal-plans', { recipe_id: selected, planned_date: slot.date, meal_type: slot.mealType });
+      onAdded();
+      onClose();
     } catch (error) {
-      toast.error("Failed to load meal plan");
+      toast.error(errorMessage(error, 'Could not add the meal'));
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  const fetchRecipes = async () => {
-    try {
-      const response = await api.get("/recipes");
-      setRecipes(response.data.data.recipes);
-    } catch (error) {
-      console.error("Failed to load recipes");
-    }
-  };
-
-  const handleAddMeal = (date, mealType) => {
-    setSelectedSlot({ date, mealType });
-    setShowAddModal(true);
-  };
-
-  const handleRemoveMeal = async (mealId) => {
-    if (!confirm("Remove this meal from your plan?")) return;
-
-    try {
-      await api.delete(`/meal-plans/${mealId}`);
-      await fetchMealPlan();
-      toast.success("Meal removed");
-    } catch (error) {
-      toast.error("Failed to remove meal");
-    }
-  };
-
-  const getDayMeals = (dayIndex) => {
-    const date = format(addDays(weekStart, dayIndex), "yyyy-MM-dd");
-    return mealPlan[date] || {};
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <div className="flex justify-center items-center h-[70vh]">
-          <p className="text-lg text-gray-600">Loading meal plan...</p>
-        </div>
-      </div>
-    );
-  }
+  const mealLabel = MEAL_TYPES.find((m) => m.value === slot?.mealType)?.label;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Meal Planner</h1>
-            <p className="text-gray-600 mt-1">Plan your weekly meals</p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setWeekStart(addDays(weekStart, -7))}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
-            >
-              Previous Week
-            </button>
-
-            <button
-              onClick={() => setWeekStart(startOfWeek(new Date()))}
-              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors"
-            >
-              This Week
-            </button>
-
-            <button
-              onClick={() => setWeekStart(addDays(weekStart, 7))}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
-            >
-              Next Week
-            </button>
-          </div>
-        </div>
-
-        {/* Week Display */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-          <div className="text-center">
-            <p className="text-sm text-gray-600">Week of</p>
-            <p className="text-lg font-semibold text-gray-900">
-              {format(weekStart, "MMMM d")} -{" "}
-              {format(addDays(weekStart, 6), "MMMM d, yyyy")}
-            </p>
-          </div>
-        </div>
-
-        {/* Calendar Grid */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="grid grid-cols-8 border-b border-gray-200 bg-gray-50">
-            <div className="p-4 font-semibold text-gray-700 border-r border-gray-200">
-              Meal
-            </div>
-
-            {DAYS_OF_WEEK.map((day, index) => (
-              <div
-                key={day}
-                className="p-4 text-center border-r border-gray-200 last:border-r-0"
-              >
-                <div className="font-semibold text-gray-900">{day}</div>
-                <div className="text-sm text-gray-500">
-                  {format(addDays(weekStart, index), "MMM d")}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {MEAL_TYPES.map((mealType) => (
-            <div
-              key={mealType}
-              className="grid grid-cols-8 border-b border-gray-200 last:border-b-0"
-            >
-              <div className="p-4 font-medium text-gray-700 capitalize border-r border-gray-200 bg-gray-50">
-                {mealType}
-              </div>
-
-              {DAYS_OF_WEEK.map((_, dayIndex) => {
-                const date = format(addDays(weekStart, dayIndex), "yyyy-MM-dd");
-
-                const dayMeals = getDayMeals(dayIndex);
-
-                const meal = dayMeals[mealType];
-
-                return (
-                  <div
-                    key={dayIndex}
-                    className="p-3 border-r border-gray-200 last:border-r-0 min-h-[100px] hover:bg-gray-50 transition-colors"
-                  >
-                    {meal ? (
-                      <div className="relative group">
-                        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
-                          <p className="text-sm font-medium text-emerald-900 line-clamp-2">
-                            {meal.recipe_name}
-                          </p>
-
-                          <button
-                            onClick={() => handleRemoveMeal(meal.id)}
-                            className="absolute top-1 right-1 p-1 bg-white rounded hover:bg-red-50 text-gray-400 hover:text-red-600 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => handleAddMeal(date, mealType)}
-                        className="w-full h-full flex items-center justify-center text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors group"
-                      >
-                        <Plus className="w-6 h-6" />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {showAddModal && selectedSlot && (
-        <AddMealModal
-          date={selectedSlot.date}
-          mealType={selectedSlot.mealType}
-          recipes={recipes}
-          onClose={() => {
-            setShowAddModal(false);
-            setSelectedSlot(null);
-          }}
-          onSuccess={fetchMealPlan}
+    <Modal
+      open={Boolean(slot)}
+      onClose={onClose}
+      title={`Add ${mealLabel?.toLowerCase() || 'meal'}`}
+      description={slot ? format(parseISO(slot.date), 'EEEE d MMMM') : ''}
+      footer={
+        recipes.length > 0 && (
+          <>
+            <Button variant="secondary" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button onClick={handleAdd} disabled={!selected} loading={saving}>
+              Add to plan
+            </Button>
+          </>
+        )
+      }
+    >
+      {recipes.length === 0 ? (
+        <EmptyState
+          icon={BookOpen}
+          title="No saved recipes"
+          description="Save a recipe first, then plan it here."
+          action={
+            <ButtonLink to="/generate" size="sm">
+              Create a recipe
+            </ButtonLink>
+          }
+          className="py-6"
         />
+      ) : (
+        <div className="space-y-3">
+          <Input icon={Search} type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search recipes" aria-label="Search recipes" data-autofocus />
+          <div role="radiogroup" aria-label="Recipe" className="max-h-72 space-y-1 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted">No recipes match “{query}”.</p>
+            ) : (
+              filtered.map((r) => {
+                const active = selected === r.id;
+                return (
+                  <button
+                    key={r.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => setSelected(r.id)}
+                    onDoubleClick={handleAdd}
+                    className={cx(
+                      'flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors',
+                      active ? 'border-brand bg-brand-soft' : 'border-transparent hover:bg-sunken',
+                    )}
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium text-ink">{r.name}</span>
+                      <span className="block text-xs text-muted">
+                        {[r.cuisine_type, formatMinutes((r.prep_time || 0) + (r.cook_time || 0))].filter(Boolean).join(' · ')}
+                      </span>
+                    </span>
+                    <span
+                      className={cx(
+                        'size-4 shrink-0 rounded-full border',
+                        active ? 'border-[5px] border-brand' : 'border-line-strong',
+                      )}
+                      aria-hidden="true"
+                    />
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
       )}
-    </div>
+    </Modal>
   );
 };
 
-const AddMealModal = ({ date, mealType, recipes, onClose, onSuccess }) => {
-  const [selectedRecipe, setSelectedRecipe] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+const Slot = ({ meal, mealType, onAdd, onRemove }) => {
+  const label = MEAL_TYPES.find((m) => m.value === mealType)?.label;
+  if (meal) {
+    return (
+      <div className="group relative min-h-[62px] rounded-lg border border-line bg-surface p-2.5 transition-colors hover:border-line-strong">
+        <p className="text-[11px] font-medium uppercase tracking-wide text-muted">{label}</p>
+        <Link to={`/recipes/${meal.recipe_id}`} className="mt-0.5 block pr-5 text-[13px] font-medium leading-snug text-ink hover:text-brand">
+          {meal.recipe_name}
+        </Link>
+        {(meal.prep_time || meal.cook_time) && (
+          <p className="tabular mt-1 flex items-center gap-1 text-[11px] text-muted">
+            <Clock className="size-3" aria-hidden="true" />
+            {formatMinutes((meal.prep_time || 0) + (meal.cook_time || 0))}
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={() => onRemove(meal)}
+          aria-label={`Remove ${meal.recipe_name} from ${label}`}
+          className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-md text-muted hover:bg-danger-soft hover:text-danger lg:opacity-0 lg:group-focus-within:opacity-100 lg:group-hover:opacity-100"
+        >
+          <X className="size-3.5" />
+        </button>
+      </div>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={onAdd}
+      aria-label={`Add ${label}`}
+      className={cx(
+        // Quiet until hovered, so an empty week doesn't look busy
+        'flex h-[62px] w-full items-center gap-1.5 rounded-lg border border-dashed border-transparent px-2.5 text-left text-[13px] text-muted/80 transition-colors hover:border-brand/40 hover:bg-brand-soft/50 hover:text-brand focus-visible:border-brand/40',
+      )}
+    >
+      <Plus className="size-3.5 shrink-0" aria-hidden="true" />
+      <span>{label}</span>
+    </button>
+  );
+};
 
-  const filteredRecipes = recipes.filter((recipe) =>
-    recipe.name.toLowerCase().includes(searchQuery.toLowerCase()),
+const MealPlanner = () => {
+  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), WEEK_OPTIONS));
+  const [meals, setMeals] = useState([]);
+  const [recipes, setRecipes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [slot, setSlot] = useState(null);
+
+  const startKey = format(weekStart, 'yyyy-MM-dd');
+
+  const fetchWeek = useCallback(
+    () =>
+      api
+        .get(`/meal-plans/weekly?start_date=${startKey}`)
+        .then((res) => setMeals(res.data.data.mealPlans || []))
+        .catch(() => toast.error('Could not load the meal plan'))
+        .finally(() => setLoading(false)),
+    [startKey],
   );
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  useEffect(() => {
+    fetchWeek();
+  }, [fetchWeek]);
 
-    if (!selectedRecipe) {
-      toast.error("Please select a recipe");
-      return;
+  useEffect(() => {
+    api
+      .get('/recipes')
+      .then((res) => setRecipes(res.data.data.recipes || []))
+      .catch(() => {});
+  }, []);
+
+  const byDay = useMemo(() => {
+    const map = {};
+    for (const m of meals) {
+      const key = String(m.meal_date).slice(0, 10);
+      map[key] = { ...(map[key] || {}), [m.meal_type]: m };
     }
+    return map;
+  }, [meals]);
 
-    setLoading(true);
+  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const isCurrentWeek = startKey === format(startOfWeek(new Date(), WEEK_OPTIONS), 'yyyy-MM-dd');
 
+  const removeMeal = async (meal) => {
+    setMeals((prev) => prev.filter((m) => m.id !== meal.id));
     try {
-      await api.post("/meal-plans", {
-        recipe_id: selectedRecipe,
-        planned_date: date,
-        meal_type: mealType,
-      });
-
-      toast.success("Meal added to plan");
-      onSuccess();
-      onClose();
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to add meal");
-    } finally {
-      setLoading(false);
+      await api.delete(`/meal-plans/${meal.id}`);
+    } catch {
+      toast.error('Could not remove the meal');
+      fetchWeek();
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl max-w-md w-full p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900 capitalize">
-              Add {mealType}
-            </h2>
-            <p className="text-sm text-gray-600 mt-1">
-              {format(parseISO(date), "EEEE, MMMM d, yyyy")}
-            </p>
+    <>
+      <PageHeader
+        title="Meal plan"
+        description={`${meals.length} ${meals.length === 1 ? 'meal' : 'meals'} planned this week`}
+        actions={
+          <div className="flex items-center gap-1">
+            <IconButton icon={ChevronLeft} label="Previous week" variant="secondary" onClick={() => setWeekStart((w) => addDays(w, -7))} />
+            <Button variant="secondary" onClick={() => setWeekStart(startOfWeek(new Date(), WEEK_OPTIONS))} disabled={isCurrentWeek}>
+              This week
+            </Button>
+            <IconButton icon={ChevronRight} label="Next week" variant="secondary" onClick={() => setWeekStart((w) => addDays(w, 7))} />
           </div>
+        }
+      />
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-            aria-label="Close modal"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+      <h2 className="mb-4 text-sm font-medium text-ink-2" aria-live="polite">
+        {weekLabel(weekStart)}
+      </h2>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Search Recipe
-            </label>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search recipes..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Recipe
-            </label>
-
-            <div className="max-h-56 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100">
-              {filteredRecipes.length > 0 ? (
-                filteredRecipes.map((recipe) => (
-                  <button
-                    key={recipe.id}
-                    type="button"
-                    onClick={() => setSelectedRecipe(recipe.id)}
-                    className={`w-full text-left px-3 py-2 hover:bg-gray-50 transition-colors ${
-                      String(selectedRecipe) === String(recipe.id)
-                        ? "bg-emerald-50 text-emerald-900"
-                        : "text-gray-800"
-                    }`}
-                  >
-                    <p className="font-medium line-clamp-1">{recipe.name}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {recipe.cuisine_type || "General"} •{" "}
-                      {recipe.difficulty || "medium"}
-                    </p>
-                  </button>
-                ))
-              ) : (
-                <div className="px-3 py-6 text-sm text-gray-500 text-center">
-                  No recipes found
-                </div>
+      <div className={cx('grid gap-3 transition-opacity lg:grid-cols-7 lg:gap-2', loading && 'opacity-50')}>
+        {days.map((day) => {
+          const key = format(day, 'yyyy-MM-dd');
+          const today = isToday(day);
+          const dayMeals = byDay[key] || {};
+          return (
+            <section
+              key={key}
+              aria-label={format(day, 'EEEE d MMMM')}
+              className={cx(
+                'rounded-xl border p-3 lg:p-2',
+                today ? 'border-brand/40 bg-brand-soft/40' : 'border-line bg-paper',
               )}
-            </div>
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
             >
-              Cancel
-            </button>
+              <header className="mb-2.5 flex items-baseline justify-between px-0.5 lg:block">
+                <p className={cx('text-xs font-medium', today ? 'text-brand' : 'text-muted')}>
+                  {format(day, 'EEE')}
+                  {today && <span className="lg:hidden"> · Today</span>}
+                </p>
+                <p className={cx('display text-[20px] leading-tight lg:text-[22px]', today ? 'text-brand' : 'text-ink')}>
+                  {format(day, 'd')}
+                </p>
+              </header>
+              {/* Desktop: fixed breakfast / lunch / dinner rows so days line up */}
+              <div className="hidden gap-1.5 lg:grid">
+                {MEAL_TYPES.map(({ value }) => (
+                  <Slot
+                    key={value}
+                    meal={dayMeals[value]}
+                    mealType={value}
+                    onAdd={() => setSlot({ date: key, mealType: value })}
+                    onRemove={removeMeal}
+                  />
+                ))}
+              </div>
 
-            <button
-              type="submit"
-              disabled={loading || !selectedRecipe}
-              className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {loading ? "Adding..." : "Add Meal"}
-            </button>
-          </div>
-        </form>
+              {/* Mobile: planned meals, then one compact row of "add" buttons */}
+              <div className="space-y-1.5 lg:hidden">
+                {MEAL_TYPES.filter(({ value }) => dayMeals[value]).map(({ value }) => (
+                  <Slot key={value} meal={dayMeals[value]} mealType={value} onRemove={removeMeal} />
+                ))}
+                <div className="flex flex-wrap gap-1.5">
+                  {MEAL_TYPES.filter(({ value }) => !dayMeals[value]).map(({ value, label }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setSlot({ date: key, mealType: value })}
+                      aria-label={`Add ${label} on ${format(day, 'EEEE')}`}
+                      className="inline-flex h-8 items-center gap-1 rounded-full border border-dashed border-line-strong px-3 text-[13px] text-muted hover:border-brand/50 hover:text-brand"
+                    >
+                      <Plus className="size-3.5" aria-hidden="true" /> {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </section>
+          );
+        })}
       </div>
-    </div>
+
+      <PickRecipeModal slot={slot} recipes={recipes} onClose={() => setSlot(null)} onAdded={fetchWeek} />
+    </>
   );
 };
 

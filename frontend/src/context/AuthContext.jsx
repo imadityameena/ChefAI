@@ -1,8 +1,9 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState } from 'react';
 import api from "../services/api";
 
 const AuthContext = createContext(null);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
     const context = useContext(AuthContext);
 
@@ -14,26 +15,21 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        // Check if user is logged in
+    // Read the saved session straight away, so there's no loading flash
+    const [user, setUser] = useState(() => {
         const token = localStorage.getItem('token');
         const savedUser = localStorage.getItem('user');
-
-        if (token && savedUser) {
-            try {
-                setUser(JSON.parse(savedUser));
-            } catch {
-                // Corrupted value in storage: treat as logged out
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-            }
+        if (!token || !savedUser) return null;
+        try {
+            return JSON.parse(savedUser);
+        } catch {
+            // Corrupted value in storage: treat as logged out
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            return null;
         }
-
-        setLoading(false);
-    }, []);
+    });
+    const loading = false;
 
     const login = async (email, password) => {
         try {
